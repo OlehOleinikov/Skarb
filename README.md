@@ -42,6 +42,10 @@
 3. cd project_dir 
 4. pyinstaller --path project_dir\venv\Lib\site-packages --noconfirm --windowed --onefile --icon project_dir/app_icon.ico --name skarb project_dir/main.py
 
+## Особливість опрацювання записів декларування доходів ФОП
+
+Враховуються декларації останнього звітного періоду року (якщо є 6 та 9-місячний звіти - буде враховано тільки 9-місячний). В якості джерела доходу вказується сама особа з власним кодом РНОКПП, до статистики загальної суми доходи зазначається - ДОХОДИ ПІДПРИЄМНИЦЬКОЇ ДІЯЛЬНОСТІ.  
+
 ## Credits:
 Used in GUI:
 - https://www.flaticon.com/free-icons/excel - Excel icons created by Freepik - Flaticon
