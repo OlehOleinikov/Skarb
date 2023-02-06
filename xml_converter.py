@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import xml.etree.ElementTree as ET
 
-from defines import dict_long as sign_dict_default
+from defines import dict_long as sign_dict_default, response, service_col_names
 
 
 class CellProfit:
@@ -89,16 +89,16 @@ class FileProfitXML:
             self.columns.add(cell_inst.col)
         return 0
 
-    def check_col_set(self) -> int:
+    def check_columns_set(self) -> int:
         """
         Перевірка чи наявний достатній набір колонок у імпортованому файлі
 
-        :return: error code: 0 - OK, 1 - ERROR
+        :return: True - Ok, False - недостатньо колонок для опрацювання
         """
-        if len(set(self.headers.keys()).intersection(set(self.columns))) == 11:
-            return 0
+        if len(set(service_col_names.keys()).intersection(self.columns)) == 11:
+            return True
         else:
-            return 1
+            return False
 
     def fill_df(self) -> str:
         """
@@ -108,45 +108,87 @@ class FileProfitXML:
         :return: текстовий опис виявлених помилок
         """
         warnings = ''
+
+        # Перевірка достатності даних для побудови датафрейму:
+        if not self.check_columns_set():
+            absent_columns = ', '.join([str(x).upper() for x in list(set(service_col_names.keys()) - self.columns)])
+            warnings += f'Неправильний формат. У файлі відсутні необхідні колонки: {absent_columns}\n'
+            return warnings
+        if self.max_rows == 0:
+            warnings += f'Неправильний формат. У файлі відсутні записи.\n'
+            return warnings
+
         # Створення датафрейму з розмірами, що відповідають кількості записів/колонок:
         self.df = pd.DataFrame(np.nan, np.arange(self.max_rows), columns=list(self.columns))
 
-        # Внесення кожного запису до датафрейму:
+        # Внесення кожного запису (клітинки) до датафрейму:
         for c in self.cells_collection:
             c: CellProfit
             self.df.at[c.row - 1, c.col] = c.value  # заповнення "запис XML - клітинка таблиці"
-        # Приведення типів у відповідність:
+
+        # Вирішення помилкового коду вивантаження з БД:
+        self.df.fillna(np.nan, inplace=True)  # Перетворення None до np.nan
+        missing_persons = self.df['g3s'].isna().sum()
+        if missing_persons:
+            warnings += f'Видалено {missing_persons} записів у яких відсутні значення РНОКПП\n'
+            self.df.dropna(subset=['g3s'], inplace=True)
+        self.df['g4s'].fillna(10)
+        self.df['g4s'] = self.df['g4s'].astype(int)
+
+        if len(set(self.df['g4s'].unique()).intersection(set(response.keys()))) > 0:
+            warnings += 'Наявні записи, що свідчать про негативну відповідь на запит:\n'
+            for err_code in response.keys():
+                failed_persons = self.df.loc[self.df['g4s'] == err_code]['g3s'].unique().tolist()
+                for p in failed_persons:
+                    to_del = ', '.join([str(x+1) for x in list(self.df.loc[(self.df['g4s'] == err_code) &
+                                                                           (self.df['g3s'] == p)].index)])
+                    warnings += f"- РНОКПП {p}: {response.get(err_code, 'помилковий код відповіді')} " \
+                                f"(видалено рядки № {to_del})\n"
+                    self.df.drop(self.df[(self.df['g4s'] == err_code) & (self.df['g3s'] == p)].index, inplace=True)
+
+        # Вирішення місінгів, які можна відновити:
+        self.df = self.df.apply(lambda row: self.fill_na_tax_codes(row), axis=1)  # заповнення агенту для ФОП
+        self.df['g11'].fillna(4, inplace=True)  # заповнення кварталу у разі порожнього значення
+
+        na_income = self.df['g8'].isna().sum()  # місінги у значенні доходів
+        na_tax = self.df['g9'].isna().sum() # місінги у значенні податків
+
+        if na_income > 0:
+            ind_na_income = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g8"]), :].index)])
+            warnings += f'Відсутні суми доходу у {na_income} рядках замінені на 0.00 (№: {ind_na_income})\n'
+            self.df['g8'].fillna(0.0, inplace=True)
+
+        if na_tax > 0:
+            ind_na_tax = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g9"]), :].index)])
+            warnings += f'Відсутні суми податку у {na_tax} рядках замінені на 0.00 (№: {ind_na_tax})\n'
+            self.df['g9'].fillna(0.0, inplace=True)
+
+        # Вирішення місінгів в обовязкових колонках:
+        req_columns = {'g7s': 'Назва агента', "g10": "Вид доходу", "g12": "Рік"}
+        for column in req_columns.keys():
+            missing_count = self.df[column].isna().sum()
+            if missing_count:
+                warnings += f'Видалено {missing_persons} записів у яких відсутні значення поля "{column}"\n'
+                self.df.dropna(subset=[column], inplace=True)
+
+        # Приведення числових типів у відповідність:
         for col in self.col_int:
             if col in self.df.columns:
                 self.df[col] = self.df[col].astype(int, errors="ignore")
         for col in self.col_float:
             if col in self.df.columns:
                 self.df[col] = self.df[col].astype(float, errors="ignore")
+
+        # Перевірка, чи залишились записи після видалення місінгів:
         if self.df.shape[0] == 0:
-            return ''
-        # Видалення рядку "Загалом"
+            warnings += 'Після очищення помилкових значень не залишилось валідних записів.\n'
+            return warnings
+
+        # Видалення рядку "Декларація фізичної особи" - не приймає участі у аналізі
         self.df.drop(self.df[self.df['g10'] == 888].index, inplace=True)
 
-        # Виправлення дублювання коштів у звітах (6-місяців, 9-місяців, річиних) для декларацій єдиного податку:
+        # Виправлення дублювання коштів у звітах (6-місяців, 9-місяців, річних) для декларацій єдиного податку:
         self.df = self._tax_declaration_fix(self.df)
-        self.df = self.df.apply(lambda row: self.fill_na_tax_codes(row), axis=1)
-
-        # Перевірка грошових сум, розрахунок прибутку:
-        self.df.fillna(np.nan, inplace=True)  # Перетворення None до np.nan
-        na_income = self.df['g8'].isna().sum()
-        na_tax = self.df['g9'].isna().sum()
-
-        if na_income > 0:
-            ind_na_income = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g8"]), :].index)])
-            warnings += f'Відсутні суми доходу у {na_income} рядках (№: {ind_na_income})\n'
-            print(f'NA values in: INCOME={na_income} (index: {ind_na_income})')
-            self.df['g8'].fillna(0.0, inplace=True)
-
-        if na_tax > 0:
-            ind_na_tax = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g9"]), :].index)])
-            warnings += f'Відсутні суми податку у {na_tax} рядках (№: {ind_na_tax})\n'
-            print(f'NA values in: TAX={na_tax} (index: {ind_na_tax})')
-            self.df['g9'].fillna(0.0, inplace=True)
 
         # Розрахунок колонки прибутку:
         self.df['profit'] = self.df['g8'] - self.df['g9']

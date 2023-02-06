@@ -85,11 +85,14 @@ class DocPartPerson:
         assert self.max_year >= self.min_year
 
         # Визначення тривалості періоду за який наявні дані (щодо опрацьованої особи):
+        min_quad_val = int(str(self.min_quad)[-1])
+        max_quad_val = int(str(self.max_quad)[-1])
+        max_year_val = int(self.max_year)
+        min_year_val = int(self.min_year)
         if self.min_year == self.max_year:
-            self.dur_month = int(str(self.max_quad)[-1]) - int(str(self.min_quad)[-1]) + 1
+            self.dur_month = max_quad_val - min_quad_val + 1
         else:
-            self.dur_month = (5 - int(str(self.min_quad)[-1])) + int(str(self.max_quad)[-1]) + \
-                             (self.max_year - self.min_year) * 4 - 1
+            self.dur_month = (5 - min_quad_val) + max_quad_val + ((max_year_val - min_year_val) * 4)
         self.dur_month = self.dur_month * 3  # квартали в місяці
 
         # Визначення середніх значень доходів (розраховується з прибутку):
@@ -140,7 +143,7 @@ class DocPartPerson:
 
     def _count_plot_data_by_quarts(self):
         """Підготовка даних для гістограми - доходи по кварталам"""
-        cur_year = self.min_year
+        cur_year = int(self.min_year)
         cur_quad = int(str(self.min_quad)[-1])
         df = self.df
         for q_order in range(self.quad_count):

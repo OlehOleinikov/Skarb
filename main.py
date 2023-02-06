@@ -10,7 +10,7 @@ Description:
 внесення змін до файлу або збереження формату сторонніми програмами може призвести
 до унеможливлення конвертування.
 
-(с) 2023 by matematik_777
+(с) 2023 https://github.com/OlehOleinikov/Skarb
 
 Used in GUI:
 https://www.flaticon.com/free-icons/excel - Excel icons created by Freepik - Flaticon
@@ -55,34 +55,34 @@ class AppWin(QMainWindow, Ui_MainWindow):
                 msg.setText("Помилка читання XML файлу.")
                 msg.setInformativeText("Можливо файл відкритий іншою програмою.")
                 msg.setWindowTitle("Помилка XML")
-                #msg.setDetailedText("The details are as follows:")
                 msg.setStandardButtons(QMessageBox.Ok)
                 msg.exec_()
                 return
 
             warnings = self.data.fill_df()
+            print(self.data.df.dtypes)
             if warnings != '':
-                warnings += 'Відсутні значення заповнені "0.00"'
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Information)
-                msg.setText("Під час імпорту виявлені незаповнені значення.")
-                msg.setInformativeText("Перевірте відповідність результатів до відомостей реєстру.")
+                msg.setText("Під час імпорту виявлені невалідні записи.")
+                msg.setInformativeText("Перевірте критичність помилок за кнопкою 'Show details'")
                 msg.setWindowTitle("Попередження")
                 msg.setDetailedText(warnings)
                 msg.setStandardButtons(QMessageBox.Ok)
                 msg.exec_()
 
-            if self.data.df.shape[0] == 0 or self.data.check_col_set():
+            if self.data.df.shape[0] == 0:
                 self._disable_gui('Формат XML неочікуваний (0 записів)')
                 self.l_cur_file.setText(f'Файл: {Path(chosen_file).name}\nСтатус: Не вдалось прочитати XML')
                 self.l_cur_file.setStyleSheet("QLabel{color: rgb(150, 0, 0);}")
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Information)
                 msg.setText("Не виявлено валідних записів")
-                msg.setInformativeText("Перевірте, чи дійсно файл отриманий офіційним реєстром без внесення змін "
-                                       "або перезапису сторонніми програмами.")
+                msg.setInformativeText("Особи не мали офіційних джерел доходів, відмовлено у видачі з БД або файл "
+                                       "не відноситься до формату реєстру ДРФО/змінювався сторонніми програмами. "
+                                       "Деталі імпорту за кнопкою 'Show details'")
                 msg.setWindowTitle("Неочікуваний формат")
-                # msg.setDetailedText("The details are as follows:")
+                msg.setDetailedText(warnings)
                 msg.setStandardButtons(QMessageBox.Ok)
                 msg.exec_()
                 return
