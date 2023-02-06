@@ -126,6 +126,9 @@ class FileProfitXML:
             c: CellProfit
             self.df.at[c.row - 1, c.col] = c.value  # заповнення "запис XML - клітинка таблиці"
 
+        # Видалення рядку "Декларація фізичної особи" - не приймає участі у аналізі
+        self.df.drop(self.df[self.df['g10'].isin([888, '888'])].index, inplace=True)
+
         # Вирішення помилкового коду вивантаження з БД:
         self.df.fillna(np.nan, inplace=True)  # Перетворення None до np.nan
         missing_persons = self.df['g3s'].isna().sum()
@@ -168,7 +171,8 @@ class FileProfitXML:
         for column in req_columns.keys():
             missing_count = self.df[column].isna().sum()
             if missing_count:
-                warnings += f'Видалено {missing_persons} записів у яких відсутні значення поля "{column}"\n'
+                warnings += f'Видалено {missing_count} записів у яких відсутні значення поля ' \
+                            f'"{service_col_names.get(column, column)}"\n'
                 self.df.dropna(subset=[column], inplace=True)
 
         # Приведення числових типів у відповідність:
@@ -183,9 +187,6 @@ class FileProfitXML:
         if self.df.shape[0] == 0:
             warnings += 'Після очищення помилкових значень не залишилось валідних записів.\n'
             return warnings
-
-        # Видалення рядку "Декларація фізичної особи" - не приймає участі у аналізі
-        self.df.drop(self.df[self.df['g10'] == 888].index, inplace=True)
 
         # Виправлення дублювання коштів у звітах (6-місяців, 9-місяців, річних) для декларацій єдиного податку:
         self.df = self._tax_declaration_fix(self.df)
@@ -281,7 +282,7 @@ class FileProfitXML:
         """
         Заповнення значення роботодавця в разі коли запис стосується ФОП
         """
-        if row['g10'] == 512:
+        if row['g10'] in [512, '512']:
             row['g6s'] = row['g3s']
             row['g7s'] = 'ДОХОДИ ВЛАСНОЇ ПІДПРИЄМНИЦЬКОЇ ДІЯЛЬНОСТІ'
         return row

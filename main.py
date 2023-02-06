@@ -60,7 +60,6 @@ class AppWin(QMainWindow, Ui_MainWindow):
                 return
 
             warnings = self.data.fill_df()
-            print(self.data.df.dtypes)
             if warnings != '':
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Information)
