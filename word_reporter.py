@@ -1,5 +1,5 @@
 """
-Класи роботи з формуванням документу MS Word
+Формування документу MS Word
 """
 import io
 import re
@@ -26,7 +26,7 @@ from defines import dict_long, dict_short, service_col_names, headersdict, dict_
 
 class DocEditor(_DocEditorEmpty):
     """
-    Клас формування документу зі звітом про доходи (відповідно завантажених у інстанс FileProfitXML
+    Клас формування документу зі звітом про доходи (відповідно завантажених у інстанс FileProfitXML)
     """
 
     def __init__(self,
@@ -218,7 +218,6 @@ class DocPartPerson:
         p_average_m = self.document.add_paragraph(style='List Bullet 2')
         p_average_m.add_run(f'в середньому на місяць - ')
         p_average_m.add_run(f'{self.f2s(self.profit_ave_month)} грн.').bold = True
-
         p_dummy = self.document.add_paragraph('', style='text_base')
 
     def _add_plot(self, input_data: dict):
