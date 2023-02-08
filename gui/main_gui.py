@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'main_gui_pub.ui'
+# Form implementation generated from reading ui file 'main_gui_pub2.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.7
 #
@@ -14,14 +14,14 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(400, 725)
+        MainWindow.resize(400, 700)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMinimumSize(QtCore.QSize(400, 725))
-        MainWindow.setMaximumSize(QtCore.QSize(400, 725))
+        MainWindow.setMinimumSize(QtCore.QSize(400, 700))
+        MainWindow.setMaximumSize(QtCore.QSize(400, 700))
         MainWindow.setBaseSize(QtCore.QSize(320, 650))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/custom1/svg_original/down-arrow (1).svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -388,9 +388,6 @@ class Ui_MainWindow(object):
         self.verticalLayout_6 = QtWidgets.QVBoxLayout()
         self.verticalLayout_6.setContentsMargins(-1, -1, 0, 0)
         self.verticalLayout_6.setObjectName("verticalLayout_6")
-        self.cb_det_plot = QtWidgets.QCheckBox(self.gb_word)
-        self.cb_det_plot.setObjectName("cb_det_plot")
-        self.verticalLayout_6.addWidget(self.cb_det_plot)
         self.cb_det_years = QtWidgets.QCheckBox(self.gb_word)
         self.cb_det_years.setObjectName("cb_det_years")
         self.verticalLayout_6.addWidget(self.cb_det_years)
@@ -497,7 +494,6 @@ class Ui_MainWindow(object):
         self.l_cur_file.setText(_translate("MainWindow", "Статус: Готовий до роботи\n"
 ""))
         self.gb_word.setTitle(_translate("MainWindow", "Звіт Word (*.docx):"))
-        self.cb_det_plot.setText(_translate("MainWindow", "Додати графіки"))
         self.cb_det_years.setText(_translate("MainWindow", "Деталізувати по роках"))
         self.cb_det_types.setText(_translate("MainWindow", "Деталізувати по видам доходу"))
         self.cb_det_tab.setText(_translate("MainWindow", "Додати основну таблицю"))

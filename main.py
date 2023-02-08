@@ -44,6 +44,8 @@ class AppWin(QMainWindow, Ui_MainWindow):
         chosen_file = QFileDialog.getOpenFileName(self, 'Вибір файлу відомостей про доходи', str(Path.cwd().absolute()),
                                                   'Файли XML (*.xml *.XML)')[0]
         if chosen_file:
+            self.statusbar.showMessage('Завантаження XML...', 5000)
+            QApplication.processEvents()
             self.data = FileProfitXML(chosen_file)
             success = (not bool(self.data.read_xml()))  # спроба прочитати XML файл
             if not success:
@@ -105,25 +107,28 @@ class AppWin(QMainWindow, Ui_MainWindow):
     def save_excel(self):
         new_file = QFileDialog.getSaveFileName(self, "Збереження таблиці доходів", '', 'Файл Excel (*.xlsx)')
         if new_file[0] != '':
+            self.statusbar.showMessage('Збереження таблиці Excel...', 5000)
+            QApplication.processEvents()
             self.data: FileProfitXML
             self.data.save_excel(new_file[0],
                                  separate=self.rb_excel_sep.isChecked(),
                                  format_float=self.cb_float_format.isChecked(),
                                  add_profit_column=self.cb_add_profi_col.isChecked())
-            self.statusbar.showMessage('Збереження EXCEL завершено', 5000)
+            self.statusbar.showMessage('Запис Excel файлу завершено', 5000)
 
     def save_word(self):
         new_file = QFileDialog.getSaveFileName(self, "Збереження звіту", '', 'Файл Word (*.docx)')
         if new_file[0] != '':
+            self.statusbar.showMessage('Збереження документу Word...', 5000)
+            QApplication.processEvents()
             word_doc = DocEditor(self.data,
                                  add_years=self.cb_det_years.isChecked(),
                                  add_signs=self.cb_det_types.isChecked(),
-                                 add_plots=self.cb_det_plot.isChecked(),
                                  add_tab=self.cb_det_tab.isChecked(),
                                  sub_list_text=self.rb_sublist_text.isChecked(),
                                  sub_list_table=self.rb_sublist_table.isChecked())
             word_doc.save_docx(new_file[0])
-            self.statusbar.showMessage('Збереження WORD завершено', 5000)
+            self.statusbar.showMessage('Запис Word файлу завершено', 5000)
 
 
 def run_gui():

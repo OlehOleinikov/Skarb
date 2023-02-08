@@ -1,0 +1,733 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>400</width>
+    <height>700</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>400</width>
+    <height>700</height>
+   </size>
+  </property>
+  <property name="baseSize">
+   <size>
+    <width>320</width>
+    <height>650</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Skarb</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="res_icons.qrc">
+    <normaloff>:/custom1/svg_original/down-arrow (1).svg</normaloff>:/custom1/svg_original/down-arrow (1).svg</iconset>
+  </property>
+  <property name="windowOpacity">
+   <double>0.970000000000000</double>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">*{background-color: rgb(226, 226, 226);
+	font-size: 13px;}
+
+/*------------------------------------------------------------QToolTip*/
+QToolTip {
+	color: rgb(230, 230, 230);
+	background-color: rgb(153, 153, 153);
+    padding: 5px;
+    border-radius: 3px;
+	opacity:20;
+}
+
+
+
+/*--------------------------------------------------------------QScrolBar*/
+	/* ---------------------------VERTICAL ----------------------*/
+	/*Загальна форма*/
+ QScrollBar:vertical {
+	border: none;
+    background: rgb(211, 211, 211);
+    width: 15px;
+    margin: 15px 0px 15px 0px;
+	padding: 0px 3px 0px 3px;
+	border-radius: 0px;
+ }
+
+	/* HANDLE BAR VERTICAL*/
+QScrollBar::handle:vertical {	
+	background-color:rgb(153, 153, 149);
+	min-height: 30px;
+	border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover{	
+	background-color: rgb(246, 191, 39);
+}
+QScrollBar::handle:vertical:pressed {	
+	background-color: rgb(220, 180, 41);
+}
+
+/* BTN TOP - SCROLLBAR */
+QScrollBar::sub-line:vertical {
+	border: none;
+	background-color: rgb(211, 211, 211);
+	height: 15px;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	subcontrol-position: top;
+	subcontrol-origin: margin;
+}
+QScrollBar::sub-line:vertical:hover {	
+	background-color: rgb(184, 184, 180);
+}
+QScrollBar::sub-line:vertical:pressed {	
+	background-color: rgb(153, 153, 149);
+}
+
+/* BTN BOTTOM - SCROLLBAR */
+QScrollBar::add-line:vertical {
+	border: none;
+	background-color: rgb(211, 211, 211);
+	height: 15px;
+	border-bottom-left-radius: 7px;
+	border-bottom-right-radius: 7px;
+	subcontrol-position: bottom;
+	subcontrol-origin: margin;
+}
+QScrollBar::add-line:vertical:hover {	
+	background-color: rgb(184, 184, 180);
+}
+QScrollBar::add-line:vertical:pressed {	
+	background-color: rgb(153, 153, 149);
+}
+
+/* RESET ARROW */
+QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+	background: none;
+}
+
+QScrollBar::up-arrow:vertical{
+	image: url(:/custom1/icons_custom/au.svg);
+	width: 10px;
+	height: 10px;
+	margin-right: 2px;
+	margin-top:1px;
+	margin-left:2px;
+}
+
+QScrollBar::down-arrow:vertical{
+	image: url(:/custom1/icons_custom/ad.svg);
+	width: 10px;
+	height: 10px;
+	margin-right: 2px;
+	margin-bottom:1px;
+	margin-left:2px;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+	background: none;
+}
+
+	/* ---------------------------HORIZONTAL ----------------------*/
+	/*Загальна форма*/
+ QScrollBar:horizontal {
+	border: none;
+    background: rgb(211, 211, 211);
+    height: 15px;
+    margin: 0px 15px 0px 15px;
+	padding: 3px 0px 3px 0px;
+	border-radius: 0px;
+ }
+
+	/* HANDLE BAR HORIZONTAL*/
+QScrollBar::handle:horizontal {	
+	background-color:rgb(153, 153, 149);
+	min-width: 30px;
+	border-radius: 4px;
+}
+QScrollBar::handle:horizontal:hover{	
+	background-color: rgb(246, 191, 39);
+}
+QScrollBar::handle:horizontal:pressed {	
+	background-color: rgb(220, 180, 41);
+}
+
+/* BTN LEFT - SCROLLBAR */
+QScrollBar::sub-line:horizontal {
+	border: none;
+	background-color: rgb(211, 211, 211);
+	width: 15px;
+	border-top-left-radius: 7px;
+	border-bottom-left-radius: 7px;
+	subcontrol-position: left;
+	subcontrol-origin: margin;
+}
+QScrollBar::sub-line:horizontal:hover {	
+	background-color: rgb(184, 184, 180);
+}
+QScrollBar::sub-line:horizontal:pressed {	
+	background-color: rgb(153, 153, 149);
+}
+
+/* BTN RIGHT - SCROLLBAR */
+QScrollBar::add-line:horizontal {
+	border: none;
+	background-color: rgb(211, 211, 211);
+	width: 15px;
+	border-top-right-radius: 7px;
+	border-bottom-right-radius: 7px;
+	subcontrol-position: right;
+	subcontrol-origin: margin;
+}
+QScrollBar::add-line:horizontal:hover {	
+	background-color: rgb(184, 184, 180);
+}
+QScrollBar::add-line:horizontal:pressed {	
+	background-color: rgb(153, 153, 149);
+}
+
+/* RESET ARROW */
+QScrollBar::left-arrow:horizontal, QScrollBar::right-arrow:horizontal{
+	background: none;
+}
+
+QScrollBar::left-arrow:horizontal{
+	image: url(:/custom1/icons_custom/al.svg);
+	width: 10px;
+	height: 10px;
+	margin-bottom: 2px;
+	margin-top:2px;
+	margin-left:1px;
+}
+
+QScrollBar::right-arrow:horizontal{
+	image: url(:/custom1/icons_custom/ar.svg);
+	width: 10px;
+	height: 10px;
+	margin-right: 1px;
+	margin-bottom:2px;
+	margin-top:2px;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+	background: none;
+}
+
+
+
+QGroupBox {
+    font: bold;
+    border: 1px solid silver;
+    border-radius: 6px;
+    margin-top: 0px;
+	background-color: rgb(184, 184, 184);
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 7px;
+	top: 0px;
+    padding: 10px 0px 0px 0px;
+}
+
+QLabel{background-color: rgb(184, 184, 184);}
+
+QCheckBox{background-color: rgb(184, 184, 184);}
+
+QCheckBox::indicator:unchecked {
+    image: url(:/custom1/icons_custom/switch_disable.svg);
+}
+QCheckBox::indicator:checked {
+    image: url(:/custom1/icons_custom/switch_enable.svg);
+}
+
+QCheckBox::indicator {
+	width: 38px;
+	height: 19px;
+}
+
+
+
+QRadioButton{
+	background-color: rgb(184, 184, 184);
+	margin-left: 10px;
+}
+
+QGroupBox::indicator {
+	width: 44px;
+	height: 22px;
+}
+
+QGroupBox::indicator:unchecked {
+    image: url(:/custom1/icons_custom/switch_disable.svg);
+}
+QGroupBox::indicator:checked {
+    image: url(:/custom1/icons_custom/switch_enable.svg);
+}
+
+QRadioButton::indicator {
+	width: 17px;
+	height: 17px;
+}
+
+QRadioButton::indicator:checked {
+    image: url(:/custom1/icons_custom/rb_enable.svg);
+}
+QRadioButton::indicator:unchecked {
+    image: url(:/custom1/icons_custom/rb_disable.svg);
+}
+
+QPushButton{
+	border: none;
+	background-color:  rgb(165, 165, 165);
+	border-radius: 10px;
+}
+
+
+QPushButton:hover {
+    background-color: rgb(155, 155, 155);
+}
+
+QPushButton:pressed {
+    background-color: rgb(246, 191, 39);
+}
+
+</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_5">
+    <item>
+     <widget class="QLabel" name="label_3">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="font">
+       <font>
+        <family>12</family>
+        <pointsize>-1</pointsize>
+        <weight>50</weight>
+        <italic>false</italic>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">QLabel{
+	background-color: rgb(246, 191, 39);
+	font: 14px bold;
+	padding: 5px;
+	border-radius: 6px;
+}
+</string>
+      </property>
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:11pt; font-weight:600;&quot;&gt;конвертер відомостей ДРФО (доходи ФО)&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QFrame" name="frame">
+      <property name="styleSheet">
+       <string notr="true">QLabel{background-color: rgb(226, 226, 226);}
+</string>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Raised</enum>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;Обробка та аналіз експортованих таблиць доходів реєстру ДРФО. Придатні до опрацювання файли формату *.XML (файли формату PDF не підтримуються). Власноручне внесення змін до файлу або збереження формату сторонніми програмами може призвести до помилок конвертування. &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>-1</pointsize>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QLabel{background-color: rgb(226, 226, 226);}
+</string>
+         </property>
+         <property name="text">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;https://github.com/OlehOleinikov/Skarb&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;GitHub project page&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="gb_import">
+      <property name="styleSheet">
+       <string notr="true">QLabel{margin-left:10px;}</string>
+      </property>
+      <property name="title">
+       <string>Обрати файл (*.XML):</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="topMargin">
+        <number>35</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_8">
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="l_cur_file">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>48</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true"/>
+             </property>
+             <property name="text">
+              <string>Статус: Готовий до роботи
+</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QPushButton" name="b_import">
+           <property name="minimumSize">
+            <size>
+             <width>50</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>50</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="res_icons.qrc">
+             <normaloff>:/custom1/icons_custom/ad.svg</normaloff>:/custom1/icons_custom/ad.svg</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="gb_word">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="title">
+       <string>Звіт Word (*.docx):</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <property name="topMargin">
+        <number>35</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_6">
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QCheckBox" name="cb_det_years">
+             <property name="text">
+              <string>Деталізувати по роках</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="cb_det_types">
+             <property name="text">
+              <string>Деталізувати по видам доходу</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="cb_det_tab">
+             <property name="text">
+              <string>Додати основну таблицю</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="Line" name="line_2">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>265</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="rb_sublist_off">
+             <property name="text">
+              <string>Не розгортати пункти</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="rb_sublist_text">
+             <property name="text">
+              <string>Підпункти списком</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="rb_sublist_table">
+             <property name="text">
+              <string>Підпункти таблицями</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QPushButton" name="b_word">
+           <property name="minimumSize">
+            <size>
+             <width>50</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>50</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="res_icons.qrc">
+             <normaloff>:/black/svg_original/docx-file.svg</normaloff>:/black/svg_original/docx-file.svg</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>36</width>
+             <height>36</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="gb_excel">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="title">
+       <string>Зберегти Excel (*.xlsx)</string>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <property name="topMargin">
+        <number>35</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QVBoxLayout" name="verticalLayout_7">
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QCheckBox" name="cb_float_format">
+             <property name="text">
+              <string>Формат сум (12890,00 -&gt; 12 890.00)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="cb_add_profi_col">
+             <property name="text">
+              <string>Колонка прибутку (= дохід - податок)</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="Line" name="line">
+             <property name="maximumSize">
+              <size>
+               <width>265</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="rb_excel_com">
+             <property name="baseSize">
+              <size>
+               <width>60</width>
+               <height>250</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>всі записи в одному файлі</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="rb_excel_sep">
+             <property name="text">
+              <string>окремий файл щодо кожної особи</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QPushButton" name="b_excel">
+           <property name="minimumSize">
+            <size>
+             <width>50</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>50</width>
+             <height>50</height>
+            </size>
+           </property>
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="res_icons.qrc">
+             <normaloff>:/black/svg_original/excel (1).svg</normaloff>:/black/svg_original/excel (1).svg</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>36</width>
+             <height>36</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources>
+  <include location="res_icons.qrc"/>
+ </resources>
+ <connections/>
+</ui>

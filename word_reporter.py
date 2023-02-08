@@ -3,6 +3,7 @@
 """
 import io
 import re
+from typing import List
 
 import pandas as pd
 import numpy as np
@@ -10,6 +11,7 @@ import numpy as np
 from docx import Document
 from docx.shared import Cm
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
@@ -19,7 +21,7 @@ from matplotlib.pyplot import Figure
 from empty_docx import _DocEditorEmpty
 from xml_converter import FileProfitXML
 
-from defines import dict_long, dict_short, service_col_names, headersdict
+from defines import dict_long, dict_short, service_col_names, headersdict, dict_company_types
 
 
 class DocEditor(_DocEditorEmpty):
@@ -31,7 +33,6 @@ class DocEditor(_DocEditorEmpty):
                  xml_inst: FileProfitXML,
                  add_years=False,
                  add_signs=False,
-                 add_plots=True,
                  add_tab=False,
                  sub_list_text=None,
                  sub_list_table=None):
@@ -50,7 +51,7 @@ class DocEditor(_DocEditorEmpty):
         self.persons = [x for x in self.df_xml['person'].dropna().unique().tolist() if len(x) > 6]
         for p in self.persons:  # виклик DocPartPerson який додає всі звіти у один файл (self.document)
             DocPartPerson(self, p,
-                          add_plots=add_plots, add_years=add_years, add_signs=add_signs, add_tab=add_tab,
+                          add_years=add_years, add_signs=add_signs, add_tab=add_tab,
                           sub_list_text=sub_list_text, sub_list_table=sub_list_table)
 
 
@@ -66,11 +67,9 @@ class DocPartPerson:
                  person,
                  add_years=False,
                  add_signs=False,
-                 add_plots=True,
                  add_tab=True,
                  sub_list_text=None,
                  sub_list_table=None):
-        self.add_plots = add_plots
         self.sub_list_text = sub_list_text
         self.sub_list_table = sub_list_table
         self.editor: DocEditor = editor
@@ -126,6 +125,9 @@ class DocPartPerson:
         self._add_title()
         self._add_intro()
         self._add_profit_sources()
+        pivot_table_data = self._pivot_tab_data()
+        self._pivot_tab_add(pivot_table_data)
+        self._pivot_alternative()
         if add_years:
             self._add_profit_years()
         if add_signs:
@@ -370,12 +372,12 @@ class DocPartPerson:
 
         signs_rating = self.df.groupby('desc')['income'].sum()
         signs_rating = signs_rating.sort_values(ascending=False)
-        if self.add_plots:
-            df_short = self.df[['desc', 'income']].copy()
-            df_short.replace({'desc': dict_short}, inplace=True)
-            signs_rating_pie = df_short.groupby('desc')['income'].sum()
-            if len(signs_rating_pie) > 1:
-                self._add_pie(signs_rating_pie)
+
+        df_short = self.df[['desc', 'income']].copy()
+        df_short.replace({'desc': dict_short}, inplace=True)
+        signs_rating_pie = df_short.groupby('desc')['income'].sum()
+        if len(signs_rating_pie) > 1:
+            self._add_pie(signs_rating_pie)
 
         for sign in list(signs_rating.index):
             s_p = self.document.add_paragraph(f"{self.f2s(signs_rating[sign])} грн. - {dict_long.get(sign, sign)}",
@@ -406,11 +408,10 @@ class DocPartPerson:
         p_years = self.document.add_paragraph('', style='text_base')
         p_years.add_run('Доходи по роках:').bold = True
 
-        if self.add_plots:
-            if self.dur_month > 36:  # Графік з річною деталізацією, якщо даних багато
-                self._add_plot(self.years_dict)
-            else:  # Графік з поквартальною деталізацією, якщо даних небагато
-                self._add_plot(self.quad_dict)
+        if self.dur_month > 36:  # Графік з річною деталізацією, якщо даних багато
+            self._add_plot(self.years_dict)
+        else:  # Графік з поквартальною деталізацією, якщо даних небагато
+            self._add_plot(self.quad_dict)
 
         years_rating = self.df.groupby('year')['income'].sum()
         years_rating = years_rating.sort_index(ascending=False)
@@ -539,8 +540,275 @@ class DocPartPerson:
         emp_df = pd.DataFrame(data).transpose()
         emp_df.columns = ['Сума грн.', "Код агента", "Найменування"]
         emp_df.replace({'Найменування': self.sources_dict}, inplace=True)
+        emp_df['Найменування'] = emp_df['Найменування'].apply(lambda cell: self._company_title(cell))
 
         def f2s_wrap(val):
             return DocPartPerson.f2s(val)
         emp_df['Сума грн.'] = emp_df['Сума грн.'].apply(lambda x: f2s_wrap(x))
         return emp_df
+
+    def _pivot_tab_data(self):
+        df = self.df.copy()
+        piv = pd.pivot_table(df,
+                             index=['year', 'desc', 'employer_id'],
+                             values=['profit'],
+                             aggfunc=np.sum)
+        indexes = list(piv.index)
+        cells = []
+        last_y = None
+        last_y_s = None
+        for turn in range(len(indexes)):
+            row = []
+            cur_y = str(indexes[turn][0])
+            cur_y_s = cur_y + str(indexes[turn][1])
+            if cur_y != last_y:
+                row.append(cur_y)
+                # year_profit = re.sub(r"\B(?=(?:\d{3})+$)", ' ', str(int(piv.loc[int(cur_y), :, :].sum())//1000))
+                last_y = cur_y
+            else:
+                row.append('')
+            if last_y_s != cur_y_s:
+                row.append(f'{dict_short.get(indexes[turn][1], "Вид відсутній у довідниках")} (код {indexes[turn][1]})')
+                row.append(self.f2s(piv.loc[int(cur_y), indexes[turn][1], :].sum()))
+                last_y_s = cur_y_s
+            else:
+                row.append('')
+                row.append('')
+
+            row.append(
+                f'КОД {str(indexes[turn][2])} - {self._company_title(self.sources_dict.get(indexes[turn][2], "(!)"))}')
+                # f'({self.f2s(piv.loc[int(cur_y), indexes[turn][1], indexes[turn][2]].sum())} грн.)'
+            row[2], row[3] = row[3], row[2]
+            cells.append(row)
+        return cells
+
+    @staticmethod
+    def _company_title(full_name):
+        full_name = re.sub(' +', ' ', full_name)
+        for key, value in dict_company_types.items():
+            full_name = re.sub(key, value.upper(), full_name, flags=re.IGNORECASE)
+        return full_name
+
+    def _pivot_tab_add(self, data: List[List[str]]):
+        """Додавання до документа форматованої зведеної таблиці РІК-ВИД-АГЕНТИ(СПИСОК)-СУМА_ПО_ВИДУ"""
+        headers = ['Рік', "Вид доходу", "Найменування агента", "Сума (грн.)"]
+        p_table_intro = self.document.add_paragraph(style='text_base')
+        p_table_intro.add_run("Зведена таблиця доходів в розрізі періодів та видів: ")
+
+        # Створення таблиці та заповнення кольором заголовків:
+        tab = self.document.add_table(rows=len(data) + 1, cols=len(headers))
+        tab.allow_autofit = False
+        tab.style = 'Table Grid'
+        for pos, header in enumerate(headers):
+            tab.rows[0].cells[pos].text = str(header)
+            cell_xml_element = tab.rows[0].cells[pos]._tc
+            table_cell_properties = cell_xml_element.get_or_add_tcPr()
+            shade_obj = OxmlElement('w:shd')
+            shade_obj.set(qn('w:fill'), 'd9d9d9')
+            table_cell_properties.append(shade_obj)
+
+        # Внесення даних у таблицю
+        for row_index, row in enumerate(data):
+            pos = row_index + 1
+            for cell in range(len(row)):
+                tab.rows[pos].cells[cell].text = data[row_index][cell]
+
+        # Злиття клітинок:
+        for column in range(len(headers)):
+            last_filled = 0
+            for row in range(len(tab.rows)):
+                if tab.rows[row].cells[column].paragraphs[0].runs[0].text != "":
+                    if (row - last_filled) > 1:
+                        a = tab.rows[last_filled].cells[column]
+                        b = tab.rows[row-1].cells[column]
+                        a.merge(b)
+                    last_filled = row
+                if (row == len(tab.rows)) and (row - last_filled) > 1:
+                    a = tab.rows[last_filled].cells[column]
+                    b = tab.rows[row].cells[column]
+                    a.merge(b)
+
+        # Центрування колонок
+        for row in range(len(tab.rows)):
+            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            tab.rows[row].cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+
+        # Центрування клітинок по вертикалі
+        for row in range(len(tab.rows)):
+            for vertical_col in [0, 1, 3]:
+                tab.rows[row].cells[vertical_col].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                # tab.rows[row].cells[vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+        # Формат років (значень першої колонки)
+        for row in range(len(tab.rows)):
+            tab.rows[row].cells[0].paragraphs[0].runs[0].font.bold = True
+            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+        # Формат заголовків таблиці
+        for cell_pos in range(len(headers)):
+            tab.rows[0].cells[cell_pos].paragraphs[0].runs[0].font.bold = True
+            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+        # Встановлення ширини колонок
+        widths = (Cm(1), Cm(5.0), Cm(8.5), Cm(2.5))
+        for row in tab.rows:
+            for idx, width in enumerate(widths):
+                row.cells[idx].width = width
+
+        # Видалення порожніх рядків після злиття:
+        for column in range(len(headers)):
+            for row in range(len(tab.rows)):
+                cur_paragraphs = tab.rows[row].cells[column].paragraphs
+                if len(cur_paragraphs) > 1:
+                    for paragraph in cur_paragraphs[1:]:
+                        if len(paragraph.text) == 0:
+                            p = paragraph._element
+                            p.getparent().remove(p)
+                            p._p = p._element = None
+
+        self.document.add_paragraph(style='text_base')
+
+    def _pivot_alternative(self):
+        df = self.df.copy()
+        piv = pd.pivot_table(df,
+                             index=['year', 'desc', 'employer_id'],
+                             values=['profit'],
+                             aggfunc=np.sum)
+        indexes = list(piv.index)
+        cells = []
+        last_y = None
+        last_y_s = None
+        for turn in range(len(indexes)):
+            row = []
+            cur_y = str(indexes[turn][0])
+            cur_y_s = cur_y + str(indexes[turn][1])
+            if cur_y != last_y:
+                row.append(cur_y)
+                row.append(self.f2s(piv.loc[int(cur_y), :, :].sum()))
+                # year_profit = re.sub(r"\B(?=(?:\d{3})+$)", ' ', str(int(piv.loc[int(cur_y), :, :].sum())//1000))
+                last_y = cur_y
+            else:
+                row.append('')
+                row.append('')
+            if last_y_s != cur_y_s:
+                row.append(f'{dict_short.get(indexes[turn][1], "Вид відсутній у довідниках")} (код {indexes[turn][1]})'
+                           f' -   {"%.2f" % float(piv.loc[int(cur_y), indexes[turn][1], :].sum())} грн.')
+                last_y_s = cur_y_s
+            else:
+                row.append('')
+
+            row.append(
+                f'КОД {str(indexes[turn][2])} - {self._company_title(self.sources_dict.get(indexes[turn][2], "(!)"))}')
+            # f'({self.f2s(piv.loc[int(cur_y), indexes[turn][1], indexes[turn][2]].sum())} грн.)'
+            row[1], row[3] = row[3], row[1]
+            row[1], row[2] = row[2], row[1]
+            cells.append(row)
+
+        data = cells
+
+        headers = ['Рік', "Вид доходу", "Найменування агента", "Сума (грн.)"]
+        p_table_intro = self.document.add_paragraph(style='text_base')
+        p_table_intro.add_run("Зведена таблиця доходів в розрізі періодів та видів: ")
+
+        # Створення таблиці та заповнення кольором заголовків:
+        tab = self.document.add_table(rows=len(data) + 1, cols=len(headers))
+        tab.allow_autofit = False
+        tab.style = 'Table Grid'
+        for pos, header in enumerate(headers):
+            tab.rows[0].cells[pos].text = str(header)
+            cell_xml_element = tab.rows[0].cells[pos]._tc
+            table_cell_properties = cell_xml_element.get_or_add_tcPr()
+            shade_obj = OxmlElement('w:shd')
+            shade_obj.set(qn('w:fill'), 'd9d9d9')
+            table_cell_properties.append(shade_obj)
+
+        # Внесення даних у таблицю
+        for row_index, row in enumerate(data):
+            pos = row_index + 1
+            for cell in range(len(row)):
+                tab.rows[pos].cells[cell].text = data[row_index][cell]
+
+        # Злиття клітинок:
+        for column in range(len(headers)):
+            last_filled = 0
+            for row in range(len(tab.rows)):
+                if tab.rows[row].cells[column].paragraphs[0].runs[0].text != "":
+                    if (row - last_filled) > 1:
+                        a = tab.rows[last_filled].cells[column]
+                        b = tab.rows[row-1].cells[column]
+                        a.merge(b)
+                    last_filled = row
+                if (row == len(tab.rows)) and (tab.rows[row].cells[column].paragraphs[0].runs[0].text != ""):
+                    a = tab.rows[last_filled].cells[column]
+                    b = tab.rows[row].cells[column]
+                    a.merge(b)
+
+        # Центрування колонок
+        for row in range(len(tab.rows)):
+            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            tab.rows[row].cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+
+        # Центрування клітинок по вертикалі
+        for row in range(len(tab.rows)):
+            for vertical_col in [0, 1, 3]:
+                tab.rows[row].cells[vertical_col].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                # tab.rows[row].cells[vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+        # Формат років (значень першої колонки)
+        for row in range(len(tab.rows)):
+            tab.rows[row].cells[0].paragraphs[0].runs[0].font.bold = True
+            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+
+        # Формат заголовків таблиці
+        for cell_pos in range(len(headers)):
+            tab.rows[0].cells[cell_pos].paragraphs[0].runs[0].font.bold = True
+            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+        # Встановлення ширини колонок
+        widths = (Cm(1), Cm(4.7), Cm(8.8), Cm(2.5))
+        for row in tab.rows:
+            for idx, width in enumerate(widths):
+                row.cells[idx].width = width
+
+        # Видалення порожніх рядків після злиття:
+        for column in range(len(headers)):
+            for row in range(len(tab.rows)):
+                cur_paragraphs = tab.rows[row].cells[column].paragraphs
+                if len(cur_paragraphs) > 1:
+                    for paragraph in cur_paragraphs[1:]:
+                        if len(paragraph.text) == 0:
+                            p = paragraph._element
+                            p.getparent().remove(p)
+                            p._p = p._element = None
+
+        self.document.add_paragraph(style='text_base')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
