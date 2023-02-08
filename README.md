@@ -1,7 +1,11 @@
 # Skarb
+[![Generic badge](https://img.shields.io/badge/Skarb_0.4beta_for_Windows-DOWNLOAD_(СКАЧАТИ)-blue?style=for-the-badge&logo=appveyor)](https://github.com/OlehOleinikov/Skarb/releases/download/v0.4-beta/skarb-0.4b.exe)
+
 
 [![Generic badge](https://img.shields.io/badge/license-GNU_GPL_v.3-COLOR.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
+
 [![Generic badge](https://img.shields.io/badge/*.exe-pyinstaller-COLOR.svg)](https://github.com/OlehOleinikov/Skarb#збірка-проекту)
+
 [![Generic badge](https://img.shields.io/badge/MS_Word-python_docx-COLOR.svg)](https://github.com/OlehOleinikov/Skarb#експорт)
 
 Обробка та зведення загальних показників експортованих таблиць доходів ДРФО (J1703502.xsd - XML scheme)
