@@ -4,7 +4,7 @@
 [![Generic badge](https://img.shields.io/badge/*.exe-pyinstaller-COLOR.svg)](https://github.com/OlehOleinikov/Skarb#збірка-проекту)
 [![Generic badge](https://img.shields.io/badge/MS_Word-python_docx-COLOR.svg)](https://github.com/OlehOleinikov/Skarb#експорт)
 
-Обробка та зведення загальних показників експортованих таблиць доходів ДРФО (J1703502.xsd XML scheme)
+Обробка та зведення загальних показників експортованих таблиць доходів ДРФО (J1703502.xsd - XML scheme)
 
 ![](demo/demo_gui.png)
 
@@ -29,11 +29,11 @@
   
 ### Загальні та середні суми доходів, джерела доходів:
 
-![](demo/p_1.png)
+![](demo/p_intro.png)
 
 ### Зведена таблиця:
 
-![](demo/p_0.png)
+![](demo/p_pivot.png)
 
 ### Деталізація доходів по роках:
 
