@@ -107,7 +107,7 @@ class AppWin(QMainWindow, Ui_MainWindow):
     def save_excel(self):
         new_file = QFileDialog.getSaveFileName(self, "Збереження таблиці доходів", '', 'Файл Excel (*.xlsx)')
         if new_file[0] != '':
-            self.statusbar.showMessage('Збереження таблиці Excel...', 5000)
+            self.statusbar.showMessage('Збереження Excel...', 5000)
             QApplication.processEvents()
             self.data: FileProfitXML
             self.data.save_excel(new_file[0],
@@ -119,7 +119,7 @@ class AppWin(QMainWindow, Ui_MainWindow):
     def save_word(self):
         new_file = QFileDialog.getSaveFileName(self, "Збереження звіту", '', 'Файл Word (*.docx)')
         if new_file[0] != '':
-            self.statusbar.showMessage('Збереження документу Word...', 5000)
+            self.statusbar.showMessage('Збереження Word...', 5000)
             QApplication.processEvents()
             word_doc = DocEditor(self.data,
                                  add_years=self.cb_det_years.isChecked(),

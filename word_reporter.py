@@ -593,7 +593,7 @@ class DocPartPerson:
         """Додавання до документа форматованої зведеної таблиці РІК-ВИД-АГЕНТИ(СПИСОК)-СУМА_ПО_ВИДУ"""
         headers = ['Рік', "Вид доходу", "Найменування агента", "Сума (грн.)"]
         p_table_intro = self.document.add_paragraph(style='text_base')
-        p_table_intro.add_run("Зведена таблиця доходів в розрізі періодів та видів: ")
+        p_table_intro.add_run("Зведена таблиця доходів: ")
 
         # Створення таблиці та заповнення кольором заголовків:
         tab = self.document.add_table(rows=len(data) + 1, cols=len(headers))
@@ -741,10 +741,11 @@ class DocPartPerson:
                         b = tab.rows[row-1].cells[column]
                         a.merge(b)
                     last_filled = row
-                if (row == len(tab.rows)) and (tab.rows[row].cells[column].paragraphs[0].runs[0].text != ""):
-                    a = tab.rows[last_filled].cells[column]
-                    b = tab.rows[row].cells[column]
-                    a.merge(b)
+
+            if tab.rows[-1].cells[column].paragraphs[0].runs[0].text == "":
+                a = tab.rows[last_filled].cells[column]
+                b = tab.rows[-1].cells[column]
+                a.merge(b)
 
         # Центрування колонок
         for row in range(len(tab.rows)):
