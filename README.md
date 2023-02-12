@@ -1,5 +1,5 @@
 # Skarb
-[![Generic badge](https://img.shields.io/badge/Skarb_0.4beta_for_Windows-DOWNLOAD_(СКАЧАТИ)-blue?style=for-the-badge&logo=windows)](https://github.com/OlehOleinikov/Skarb/releases/download/v0.4-beta/skarb-0.4b.exe)
+[![Generic badge](https://img.shields.io/badge/Skarb_0.4beta_for_Windows-DOWNLOAD_(СКАЧАТИ)-blue?style=for-the-badge&logo=windows)](https://github.com/CAC-NAIAU/Skarb/releases/download/0.4-betavs/skarb-0.4bvs.exe)
 
 
 [![Generic badge](https://img.shields.io/badge/license-GNU_GPL_v.3-COLOR.svg)](https://www.gnu.org/licenses/gpl-3.0.txt)
