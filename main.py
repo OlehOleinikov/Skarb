@@ -117,18 +117,15 @@ class AppWin(QMainWindow, Ui_MainWindow):
             self.statusbar.showMessage('Запис Excel файлу завершено', 5000)
 
     def save_word(self):
-        new_file = QFileDialog.getSaveFileName(self, "Збереження звіту", '', 'Файл Word (*.docx)')
-        if new_file[0] != '':
-            self.statusbar.showMessage('Збереження Word...', 5000)
-            QApplication.processEvents()
-            word_doc = DocEditor(self.data,
+        self.statusbar.showMessage('Збереження Word...', 5000)
+        QApplication.processEvents()
+        word_doc = DocEditor(self.data,
                                  add_years=self.cb_det_years.isChecked(),
                                  add_signs=self.cb_det_types.isChecked(),
                                  add_tab=self.cb_det_tab.isChecked(),
                                  sub_list_text=self.rb_sublist_text.isChecked(),
                                  sub_list_table=self.rb_sublist_table.isChecked())
-            word_doc.save_docx(new_file[0])
-            self.statusbar.showMessage('Запис Word файлу завершено', 5000)
+        self.statusbar.showMessage('Запис Word файлу завершено', 5000)
 
 
 def run_gui():

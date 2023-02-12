@@ -14,7 +14,7 @@ import pandas as pd
 import numpy as np
 import xml.etree.ElementTree as ET
 
-from defines import dict_long as sign_dict_default, response, service_col_names
+from defines import dict_short, response, service_col_names, tech_headers
 
 
 class CellProfit:
@@ -35,21 +35,13 @@ class CellProfit:
 
 
 class FileProfitXML:
-    headers = {'g2s': 'Особа №',
-               'g3s': 'РНОКПП',
-               'g4s': 'Результат обробки',
-               'g5': 'Тип ФО',
-               'g6s': 'Код агента',
-               'g7s': 'Назва агента',
-               'g8': 'Дохід',
-               'g9': 'Податок',
-               'profit': 'Прибуток',
-               'g10': 'Ознака доходу',
-               'g11': 'Квартал',
-               'g12': 'Рік'}
+    headers = tech_headers
     col_int = ['g5', 'g10', 'g11', 'g12']
     col_float = ['g8', 'g9']
-    signs = sign_dict_default
+    
+    signs = {}
+    for key, value in dict_short.items():
+        signs[key] = str(key) + " - " + value
 
     def __init__(self, file: Union[str, Path]):
         assert type(file) in [str, Path], "Тип посилання на файл - string або екземпляр Path"
@@ -202,9 +194,9 @@ class FileProfitXML:
             df = external_df
 
         if add_profit:
-            df_view = df[['g2s', 'g3s', 'g6s', 'g7s', 'g8', 'g9', 'profit', 'g10', 'g11', 'g12']].copy()
+            df_view = df[['g2s', 'g3s', 'g4s', 'g5', 'g6s', 'g7s', 'g8', 'g9', 'profit', 'g10', 'g11', 'g12']].copy()
         else:
-            df_view = df[['g2s', 'g3s', 'g6s', 'g7s', 'g8', 'g9', 'g10', 'g11', 'g12']].copy()
+            df_view = df[['g2s', 'g3s', 'g4s', 'g5', 'g6s', 'g7s', 'g8', 'g9', 'g10', 'g11', 'g12']].copy()
 
         def f2s(amount):
             try:
@@ -228,6 +220,28 @@ class FileProfitXML:
         df_view.rename(columns=self.headers, inplace=True)
         df_view.fillna('Не зазначено', inplace=True)
         return df_view
+    
+    def write_pt(self, df, file, add_profit=True):
+        
+        if add_profit:
+            values = ['Дохід', 'Податок', 'Прибуток']
+        else:
+            values = ['Дохід', 'Податок']
+
+        df_General = df.pivot_table(index = ['РНОКПП'], values=values, aggfunc = np.sum)
+        df_Feature = df.pivot_table(index = ['РНОКПП', 'Ознака доходу'], values=values, aggfunc = np.sum,
+                            margins = True, margins_name='Total')
+        df_QY = df.pivot_table(index = ['РНОКПП', 'Рік', 'Ознака доходу'], columns=['Квартал'], values=values, aggfunc = np.sum,
+                            margins = True, margins_name='Total')
+        df_unique_ipn = df[['РНОКПП', 'Особа №']]
+        df_unique_ipn = df_unique_ipn.drop_duplicates(subset = ['РНОКПП', 'Особа №']).reset_index(drop = True)
+        
+        with pd.ExcelWriter(file) as writer:
+            df.to_excel(writer, sheet_name='Info', index=False)
+            df_General.to_excel(writer, sheet_name='Pt_General')
+            df_Feature.to_excel(writer, sheet_name='Pt_Feature')
+            df_QY.to_excel(writer, sheet_name='Pt_QY')
+            df_unique_ipn.to_excel(writer, sheet_name='Handbook', index=False)
 
     def save_excel(self, file: Union[str, Path], separate=False, format_float=True, add_profit_column=True):
         """
@@ -243,14 +257,14 @@ class FileProfitXML:
 
         if not separate:
             df = self._get_formatted_df(format_float=format_float, add_profit=add_profit_column)
-            df.to_excel(file, index=False)
+            self.write_pt(df, file, add_profit=add_profit_column)
         else:
             persons = self.df['g3s'].dropna().unique().tolist()
             for p in persons:
                 df = self.df.loc[self.df['g3s'] == p]
                 cur_path = file.with_name(f"{file.stem}_{str(p)}{file.suffix}")
                 df_f = self._get_formatted_df(df, format_float=format_float, add_profit=add_profit_column)
-                df_f.to_excel(cur_path, index=False)
+                self.write_pt(df_f, cur_path, add_profit=add_profit_column)
 
     @staticmethod
     def _tax_declaration_fix(df: pd.DataFrame):
