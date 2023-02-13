@@ -39,6 +39,7 @@ class AppWin(QMainWindow, Ui_MainWindow):
         self.b_word.clicked.connect(self.save_word)
         self.b_excel.clicked.connect(self.save_excel)
         self.l_cur_file.setText(f'Статус: Готовий до роботи')
+        self.label_4.setOpenExternalLinks(True)
 
     def import_file(self):
         chosen_file = QFileDialog.getOpenFileName(self, 'Вибір файлу відомостей про доходи', str(Path.cwd().absolute()),
