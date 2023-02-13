@@ -149,6 +149,9 @@ class FileProfitXML:
                                 f"(видалено рядки № {to_del})\n"
                     self.df.drop(self.df[(self.df['g4s'] == err_code) & (self.df['g3s'] == p)].index, inplace=True)
 
+        # Виправлення дублювання коштів у звітах (6-місяців, 9-місяців, річних) для декларацій єдиного податку:
+        self.df = self._tax_declaration_fix(self.df)
+
         # Вирішення місінгів, які можна відновити:
         self.df = self.df.apply(lambda row: self.fill_na_tax_codes(row), axis=1)  # заповнення агенту для ФОП
         self.df['g11'].fillna(4, inplace=True)  # заповнення кварталу у разі порожнього значення
@@ -187,9 +190,6 @@ class FileProfitXML:
         if self.df.shape[0] == 0:
             warnings += 'Після очищення помилкових значень не залишилось валідних записів.\n'
             return warnings
-
-        # Виправлення дублювання коштів у звітах (6-місяців, 9-місяців, річних) для декларацій єдиного податку:
-        self.df = self._tax_declaration_fix(self.df)
 
         # Розрахунок колонки прибутку:
         self.df['profit'] = self.df['g8'] - self.df['g9']
@@ -257,30 +257,47 @@ class FileProfitXML:
         """
         Нормалізація доходів зазначених в деклараціях платника єдиного податку:
         виключення піврічних звітів, які включаються 9-річними, формування окремого виду доходу щодо
-        доходу отриманого від підприємницької діяльності (коди 506, 509, 512)
+        доходу отриманого від підприємницької діяльності (коди 506, 509, 512).
+        Дублювання звітів визначається для кожного року та кожної окремої особи.
+        Передбачається використання методу під час опрацювання місінгів (тобто до приведення
+        типів до цілих чисел).
         """
         df = df.copy()
         # Визначення років, у які подавались декларації:
-        years_with_declar = df.loc[df['g10'].isin([506, 509, 512]), 'g12'].unique()
+        years_with_declar = df.loc[df['g10'].isin(['503', '506', '509', '512'])]['g12'].unique()
         # Перевірка чи в кожному році прийшли річні звіти:
         for year in years_with_declar:
-            tax_signs_present = df.loc[(df['g12'] == year) & (df['g10'].isin([506, 509, 512])), 'g10'].unique()
-            # Якщо є річний звіт - видалити проміжні
-            if 512 in tax_signs_present:
-                df.drop(df[(df['g12'] == year) & (df['g10'].isin([506, 509]))].index, inplace=True)
-            # Якщо немає річного, але є за 9 місяців - видалити піврічний звіт:
-            elif 509 in tax_signs_present:
-                df.drop(df[(df['g12'] == year) & (df['g10'].isin([506]))].index, inplace=True)
+            pers_with_declar = df.loc[(df['g10'].isin(['506', '509', '512'])) & (df['g12'] == year)]['g3s'].unique()
+            for person in pers_with_declar:
+                tax_signs_present = df.loc[(df['g3s'] == person) &
+                                           (df['g12'] == year) &
+                                           (df['g10'].isin(['506', '509', '512'])), 'g10'].unique()
+                # Якщо є річний звіт - видалити проміжні
+                if '512' in tax_signs_present:
+                    df.drop(df[(df['g3s'] == person) &
+                               (df['g12'] == year) &
+                               (df['g10'].isin(['506', '509', '503']))].index, inplace=True)
+                # Якщо немає річного, але є за 9 місяців - видалити попередні звіти:
+                elif '509' in tax_signs_present:
+                    df.drop(df[(df['g3s'] == person) &
+                               (df['g12'] == year) &
+                               (df['g10'].isin(['503', '506']))].index, inplace=True)
+                # Якщо немає річного та 9 місячного звітів, але є за 6 місяців - видалити  звіт першого кварталу:
+                elif '506' in tax_signs_present:
+                    df.drop(df[(df['g3s'] == person) &
+                               (df['g12'] == year) &
+                               (df['g10'].isin(['503']))].index, inplace=True)
 
         # Привести ознаки залишених звітів до загального:
         df.reset_index(inplace=True, drop=True)
-        df.replace({'g10': {509: 512, 506: 512}}, inplace=True)
+        df.replace({'g10': {'503': '512', '509': '512', '506': '512'}}, inplace=True)
         return df
 
     @staticmethod
     def fill_na_tax_codes(row):
         """
-        Заповнення значення роботодавця в разі коли запис стосується ФОП
+        Заповнення значення роботодавця в разі коли запис стосується ФОП. Код 512 - річний звіт ФОП.
+        Передбачається, що метод викликається після видалення записів про 6 та 9-місячні звіти.
         """
         if row['g10'] in [512, '512']:
             row['g6s'] = row['g3s']

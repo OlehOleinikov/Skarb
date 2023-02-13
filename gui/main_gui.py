@@ -304,7 +304,7 @@ class Ui_MainWindow(object):
         self.label_3.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
         font.setFamily("12")
-        font.setPointSize(-1)
+        #font.setPointSize(1)
         font.setBold(False)
         font.setItalic(False)
         font.setWeight(50)
@@ -338,7 +338,7 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
         self.label_4.setSizePolicy(sizePolicy)
         font = QtGui.QFont()
-        font.setPointSize(-1)
+#        font.setPointSize(1)
         self.label_4.setFont(font)
         self.label_4.setStyleSheet("QLabel{background-color: rgb(226, 226, 226);}\n"
 "")
