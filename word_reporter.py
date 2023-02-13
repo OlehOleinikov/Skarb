@@ -37,6 +37,12 @@ class DocEditor(_DocEditorEmpty):
                  sub_list_text=None,
                  sub_list_table=None):
         super().__init__()
+        self.add_years = add_years
+        self.add_signs = add_signs
+        self.add_tab = add_tab
+        self.sub_list_text = sub_list_text
+        self.sub_list_table = sub_list_table
+
         self.xml_inst = xml_inst  # посилання на результати опрацювання XML
         self.df_xml = xml_inst.df.copy()
         self.df_xml.rename(columns=service_col_names, inplace=True)  # назви колонок до більш зручних у коді
@@ -49,10 +55,14 @@ class DocEditor(_DocEditorEmpty):
 
         # Визначення переліку осіб щодо яких наявні записи у завантаженому XML:
         self.persons = [x for x in self.df_xml['person'].dropna().unique().tolist() if len(x) > 6]
-        for p in self.persons:  # виклик DocPartPerson який додає всі звіти у один файл (self.document)
-            DocPartPerson(self, p,
-                          add_years=add_years, add_signs=add_signs, add_tab=add_tab,
-                          sub_list_text=sub_list_text, sub_list_table=sub_list_table)
+
+    def get_available_persons(self) -> List[str]:
+        return self.persons
+
+    def write_person_to_document(self, person: str):
+        DocPartPerson(self, person,
+                      add_years=self.add_years, add_signs=self.add_signs, add_tab=self.add_tab,
+                      sub_list_text=self.sub_list_text, sub_list_table=self.sub_list_table)
 
 
 class DocPartPerson:
@@ -76,7 +86,6 @@ class DocPartPerson:
         self.document: Document = editor.document
         self.person = person
         self.df: pd.DataFrame = editor.df_xml.loc[editor.df_xml['person'] == person].copy()
-        # self.df.replace({'desc': self.editor.xml_inst.signs}, inplace=True)
         self.min_quad = self.df['year_quad'].min()
         self.max_quad = self.df['year_quad'].max()
         self.min_year = self.df['year'].min()

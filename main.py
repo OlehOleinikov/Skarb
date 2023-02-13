@@ -21,7 +21,7 @@ https://www.flaticon.com/free-icons/excel - Excel icons created by Bharat Icons 
 import sys
 from pathlib import Path
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressBar
 
 from gui.main_gui import Ui_MainWindow
 from xml_converter import FileProfitXML
@@ -119,7 +119,7 @@ class AppWin(QMainWindow, Ui_MainWindow):
     def save_word(self):
         new_file = QFileDialog.getSaveFileName(self, "Збереження звіту", '', 'Файл Word (*.docx)')
         if new_file[0] != '':
-            self.statusbar.showMessage('Збереження Word...', 5000)
+            self.statusbar.showMessage('Збереження Word...', 60000)
             QApplication.processEvents()
             word_doc = DocEditor(self.data,
                                  add_years=self.cb_det_years.isChecked(),
@@ -127,7 +127,34 @@ class AppWin(QMainWindow, Ui_MainWindow):
                                  add_tab=self.cb_det_tab.isChecked(),
                                  sub_list_text=self.rb_sublist_text.isChecked(),
                                  sub_list_table=self.rb_sublist_table.isChecked())
+            available_persons = word_doc.get_available_persons()
+            self.progressBar = QProgressBar()
+            self.progressBar.setMaximumHeight(18)
+            self.progressBar.setMinimumHeight(18)
+            self.progressBar.setStyleSheet("""QProgressBar {
+                                                    border: 2px solid rgb(211, 211, 211);
+                                                    border-radius: 7px;
+                                                    background-color: rgb(211, 211, 211);
+                                                    text-align: center;
+                                                }
+                                                QProgressBar::chunk {
+                                                    background-color: rgb(246, 191, 39);
+                                                    width: 7px; 
+                                                    margin: 0.5px;
+                                                    border-radius :2px;
+                                                }""")
+            self.statusBar().addPermanentWidget(self.progressBar)
+            self.progressBar.setMaximum(len(available_persons)-1)
+            self.progressBar.setMinimum(0)
+            self.progressBar.setValue(0)
+
+            for pos, person in enumerate(available_persons):
+                word_doc.write_person_to_document(person)
+                self.progressBar.setValue(pos)
+                QApplication.processEvents()
+
             word_doc.save_docx(new_file[0])
+            self.statusbar.removeWidget(self.progressBar)
             self.statusbar.showMessage('Запис Word файлу завершено', 5000)
 
 
