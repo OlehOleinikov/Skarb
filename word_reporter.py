@@ -143,6 +143,7 @@ class DocPartPerson:
             self._add_profit_signs()
         if add_tab:
             self._add_common_table(self.df_format(self.df, self.h_pers))
+        self.document.add_page_break()
 
     def _count_plot_data_by_years(self):
         """Підготовка даних для гістограми - доходи по роках"""
