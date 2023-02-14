@@ -516,10 +516,6 @@ class DocPartPerson:
 
         # Внесення даних у таблицю
         time_point = time.perf_counter()
-        # for row_index, row in df.iterrows():
-        #     pos = row_index + 1
-        #     for df_cell in range(len(df.columns)):
-        #         tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
         for i in range(df.shape[0]):
             for j in range(df.shape[1]):
                 cells[i+1][j].text = df.values[i, j]
@@ -527,12 +523,6 @@ class DocPartPerson:
 
         # Центрування колонок
         time_point = time.perf_counter()
-        # for row in range(len(tab.rows)):
-        #     tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        #     tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-        #     tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-        #     tab.rows[row].cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-        #     tab.rows[row].cells[4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
         for i in range(df.shape[0]):
             row_in_tab = i + 1
             cells[row_in_tab][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
@@ -550,9 +540,6 @@ class DocPartPerson:
         # Встановлення ширини колонок
         time_point = time.perf_counter()
         widths = (Cm(2), Cm(5.5), Cm(2), Cm(2), Cm(5.5))
-        # for row in tab.rows:
-        #     for idx, width in enumerate(widths):
-        #         row.cells[idx].width = width
         for i in range(df.shape[0]+1):
             for idx, width in enumerate(widths):
                 cells[i][idx].width = width
@@ -582,10 +569,6 @@ class DocPartPerson:
         cells = self.get_cells_grid(tab)
 
         # Внесення даних у таблицю
-        # for row_index, row in df.iterrows():
-        #     pos = row_index + 1
-        #     for df_cell in range(len(df.columns)):
-        #         tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
         for i in range(df.shape[0]):
             for j in range(df.shape[1]):
                 cells[i+1][j].text = str(df.values[i, j])
@@ -603,9 +586,6 @@ class DocPartPerson:
 
         # Встановлення ширини колонок
         widths = (Cm(2.5), Cm(2.5), Cm(12.0))
-        # for row in tab.rows:
-        #     for idx, width in enumerate(widths):
-        #         row.cells[idx].width = width
         for i in range(df.shape[0]+1):
             for idx, width in enumerate(widths):
                 cells[i][idx].width = width
@@ -702,10 +682,6 @@ class DocPartPerson:
 
         # Внесення даних у таблицю
         time_point = time.perf_counter()
-        # for row_index, row in enumerate(data):
-        #     pos = row_index + 1
-        #     for cell in range(len(row)):
-        #         tab.rows[pos].cells[cell].text = data[row_index][cell]
         for i in range(len(data)):
             for j in range(len(headers)):
                 cells[i+1][j].text = data[i][j]
@@ -715,17 +691,6 @@ class DocPartPerson:
         time_point = time.perf_counter()
         for column in range(len(headers)):
             last_filled = 0
-            # for row in range(len(tab.rows)):
-            #     if tab.rows[row].cells[column].paragraphs[0].runs[0].text != "":
-            #         if (row - last_filled) > 1:
-            #             a = tab.rows[last_filled].cells[column]
-            #             b = tab.rows[row-1].cells[column]
-            #             a.merge(b)
-            #         last_filled = row
-            #
-            # if tab.rows[-1].cells[column].paragraphs[0].runs[0].text == "":
-            #     a = tab.rows[last_filled].cells[column]
-            #     b = tab.rows[-1].cells[column]
             for row in range(len(tab.rows)):
                 if cells[row][column].paragraphs[0].runs[0].text != "":
                     if (row - last_filled) > 1:
