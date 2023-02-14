@@ -16,6 +16,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docx.table import _Cell
 
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import Figure
@@ -162,6 +163,16 @@ class DocPartPerson:
         if add_tab:
             self._add_common_table(self.df_format(self.df, self.h_pers))
         self.document.add_page_break()
+
+    @staticmethod
+    def get_cells_grid(table):
+        cells = [[]]
+        col_count = table._column_count
+        for tc in table._tbl.iter_tcs():
+            cells[-1].append(_Cell(tc, table))
+            if len(cells[-1]) == col_count:
+                cells.append([])
+        return cells
 
     @timeit
     def _count_plot_data_by_years(self):
@@ -499,24 +510,35 @@ class DocPartPerson:
             shade_obj = OxmlElement('w:shd')
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
+        cells = self.get_cells_grid(tab)
         print(f'\tCreate table, fill headers: {(time.perf_counter() - time_point):.4f}')
 
         # Внесення даних у таблицю
         time_point = time.perf_counter()
-        for row_index, row in df.iterrows():
-            pos = row_index + 1
-            for df_cell in range(len(df.columns)):
-                tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
+        # for row_index, row in df.iterrows():
+        #     pos = row_index + 1
+        #     for df_cell in range(len(df.columns)):
+        #         tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
+        for i in range(df.shape[0]):
+            for j in range(df.shape[1]):
+                cells[i+1][j].text = str(df.values[i, j])
         print(f'\tFill data: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування колонок
         time_point = time.perf_counter()
-        for row in range(len(tab.rows)):
-            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tab.rows[row].cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tab.rows[row].cells[4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        # for row in range(len(tab.rows)):
+        #     tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        #     tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        #     tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+        #     tab.rows[row].cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+        #     tab.rows[row].cells[4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        for i in range(df.shape[0]):
+            row_in_tab = i + 1
+            cells[row_in_tab][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            cells[row_in_tab][1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            cells[row_in_tab][2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            cells[row_in_tab][3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            cells[row_in_tab][4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
         print(f'\tAlign column content: {(time.perf_counter() - time_point):.4f}')
 
         # Формат заголовків таблиці
@@ -527,9 +549,12 @@ class DocPartPerson:
         # Встановлення ширини колонок
         time_point = time.perf_counter()
         widths = (Cm(2), Cm(5.5), Cm(2), Cm(2), Cm(5.5))
-        for row in tab.rows:
+        # for row in tab.rows:
+        #     for idx, width in enumerate(widths):
+        #         row.cells[idx].width = width
+        for i in range(df.shape[0]+1):
             for idx, width in enumerate(widths):
-                row.cells[idx].width = width
+                cells[i][idx].width = width
         print(f'\tSet columns width: {(time.perf_counter() - time_point):.4f}')
         self.document.add_paragraph(style='text_base')
 
