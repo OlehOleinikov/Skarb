@@ -503,14 +503,15 @@ class DocPartPerson:
         tab.allow_autofit = False
         tab.style = 'Table Grid'
         headers = list(df.columns)
+        cells = self.get_cells_grid(tab)
         for pos, header in enumerate(headers):
-            tab.rows[0].cells[pos].text = str(header)
-            cell_xml_element = tab.rows[0].cells[pos]._tc
+            cells[0][pos].text = str(header)
+            cell_xml_element = cells[0][pos]._tc
             table_cell_properties = cell_xml_element.get_or_add_tcPr()
             shade_obj = OxmlElement('w:shd')
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
-        cells = self.get_cells_grid(tab)
+
         print(f'\tCreate table, fill headers: {(time.perf_counter() - time_point):.4f}')
 
         # Внесення даних у таблицю
@@ -521,7 +522,7 @@ class DocPartPerson:
         #         tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
         for i in range(df.shape[0]):
             for j in range(df.shape[1]):
-                cells[i+1][j].text = str(df.values[i, j])
+                cells[i+1][j].text = df.values[i, j]
         print(f'\tFill data: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування колонок
@@ -578,29 +579,36 @@ class DocPartPerson:
             shade_obj = OxmlElement('w:shd')
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
+        cells = self.get_cells_grid(tab)
 
         # Внесення даних у таблицю
-        for row_index, row in df.iterrows():
-            pos = row_index + 1
-            for df_cell in range(len(df.columns)):
-                tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
+        # for row_index, row in df.iterrows():
+        #     pos = row_index + 1
+        #     for df_cell in range(len(df.columns)):
+        #         tab.rows[pos].cells[df_cell].text = str(df.iat[row_index, df_cell])
+        for i in range(df.shape[0]):
+            for j in range(df.shape[1]):
+                cells[i+1][j].text = str(df.values[i, j])
 
         # Центрування колонок
         for row in range(len(tab.rows)):
-            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            cells[row][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            cells[row][1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            cells[row][2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
         # Формат заголовків таблиці
         for cell_pos in range(len(headers)):
-            tab.rows[0].cells[cell_pos].paragraphs[0].runs[0].font.bold = True
-            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            cells[0][cell_pos].paragraphs[0].runs[0].font.bold = True
+            cells[0][cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
         # Встановлення ширини колонок
         widths = (Cm(2.5), Cm(2.5), Cm(12.0))
-        for row in tab.rows:
+        # for row in tab.rows:
+        #     for idx, width in enumerate(widths):
+        #         row.cells[idx].width = width
+        for i in range(df.shape[0]+1):
             for idx, width in enumerate(widths):
-                row.cells[idx].width = width
+                cells[i][idx].width = width
         self.document.add_paragraph(style='text_base')
 
     @timeit
@@ -681,14 +689,15 @@ class DocPartPerson:
         tab = self.document.add_table(rows=len(data) + 1, cols=len(headers))
         tab.allow_autofit = False
         tab.style = 'Table Grid'
+        cells = self.get_cells_grid(tab)
         for pos, header in enumerate(headers):
-            tab.rows[0].cells[pos].text = str(header)
-            cell_xml_element = tab.rows[0].cells[pos]._tc
+            cells[0][pos].text = str(header)
+            cell_xml_element = cells[0][pos]._tc
             table_cell_properties = cell_xml_element.get_or_add_tcPr()
             shade_obj = OxmlElement('w:shd')
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
-        cells = self.get_cells_grid(tab)
+
         print(f'\tСтворення таблиці та заповнення кольором заголовків: {(time.perf_counter() - time_point):.4f}')
 
         # Внесення даних у таблицю
@@ -745,7 +754,7 @@ class DocPartPerson:
         for row in range(len(tab.rows)):
             for vertical_col in [0, 1, 3]:
                 cells[row][vertical_col].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-                tab.rows[row].cells[vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                cells[row][vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         print(f'\tЦентрування клітинок по вертикалі: {(time.perf_counter() - time_point):.4f}')
 
         # Формат років (значень першої колонки)
