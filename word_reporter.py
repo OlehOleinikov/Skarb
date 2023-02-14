@@ -688,79 +688,94 @@ class DocPartPerson:
             shade_obj = OxmlElement('w:shd')
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
+        cells = self.get_cells_grid(tab)
         print(f'\tСтворення таблиці та заповнення кольором заголовків: {(time.perf_counter() - time_point):.4f}')
 
         # Внесення даних у таблицю
         time_point = time.perf_counter()
-        for row_index, row in enumerate(data):
-            pos = row_index + 1
-            for cell in range(len(row)):
-                tab.rows[pos].cells[cell].text = data[row_index][cell]
+        # for row_index, row in enumerate(data):
+        #     pos = row_index + 1
+        #     for cell in range(len(row)):
+        #         tab.rows[pos].cells[cell].text = data[row_index][cell]
+        for i in range(len(data)):
+            for j in range(len(headers)):
+                cells[i+1][j].text = data[i][j]
         print(f'\tВнесення даних у таблицю: {(time.perf_counter() - time_point):.4f}')
 
         # Злиття клітинок:
         time_point = time.perf_counter()
         for column in range(len(headers)):
             last_filled = 0
+            # for row in range(len(tab.rows)):
+            #     if tab.rows[row].cells[column].paragraphs[0].runs[0].text != "":
+            #         if (row - last_filled) > 1:
+            #             a = tab.rows[last_filled].cells[column]
+            #             b = tab.rows[row-1].cells[column]
+            #             a.merge(b)
+            #         last_filled = row
+            #
+            # if tab.rows[-1].cells[column].paragraphs[0].runs[0].text == "":
+            #     a = tab.rows[last_filled].cells[column]
+            #     b = tab.rows[-1].cells[column]
             for row in range(len(tab.rows)):
-                if tab.rows[row].cells[column].paragraphs[0].runs[0].text != "":
+                if cells[row][column].paragraphs[0].runs[0].text != "":
                     if (row - last_filled) > 1:
-                        a = tab.rows[last_filled].cells[column]
-                        b = tab.rows[row-1].cells[column]
+                        a = cells[last_filled][column]
+                        b = cells[row-1][column]
                         a.merge(b)
                     last_filled = row
 
-            if tab.rows[-1].cells[column].paragraphs[0].runs[0].text == "":
-                a = tab.rows[last_filled].cells[column]
-                b = tab.rows[-1].cells[column]
+            if cells[len(data)][column].paragraphs[0].runs[0].text == "":
+                a = cells[last_filled][column]
+                b = cells[len(data)][column]
                 a.merge(b)
         print(f'\tЗлиття клітинок: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування колонок
         time_point = time.perf_counter()
         for row in range(len(tab.rows)):
-            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            tab.rows[row].cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            tab.rows[row].cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            tab.rows[row].cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            cells[row][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            cells[row][1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            cells[row][2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            cells[row][3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
         print(f'\tЦентрування колонок: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування клітинок по вертикалі
         time_point = time.perf_counter()
         for row in range(len(tab.rows)):
             for vertical_col in [0, 1, 3]:
-                tab.rows[row].cells[vertical_col].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-                # tab.rows[row].cells[vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                cells[row][vertical_col].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+                tab.rows[row].cells[vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         print(f'\tЦентрування клітинок по вертикалі: {(time.perf_counter() - time_point):.4f}')
 
         # Формат років (значень першої колонки)
         time_point = time.perf_counter()
         for row in range(len(tab.rows)):
-            tab.rows[row].cells[0].paragraphs[0].runs[0].font.bold = True
-            tab.rows[row].cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            # cells[row][0].paragraphs[0].runs[0].font.bold = True
+            cells[row][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         print(f'\tФормат років (значень першої колонки): {(time.perf_counter() - time_point):.4f}')
 
         # Формат заголовків таблиці
         time_point = time.perf_counter()
         for cell_pos in range(len(headers)):
-            tab.rows[0].cells[cell_pos].paragraphs[0].runs[0].font.bold = True
-            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            cells[0][cell_pos].paragraphs[0].runs[0].font.bold = True
+            cells[0][cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            cells[0][cell_pos].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
         print(f'\tФормат заголовків таблиці: {(time.perf_counter() - time_point):.4f}')
 
         # Встановлення ширини колонок
         time_point = time.perf_counter()
         widths = (Cm(1), Cm(4.7), Cm(8.8), Cm(2.5))
-        for row in tab.rows:
+        for i in range(len(data) + 1):
             for idx, width in enumerate(widths):
-                row.cells[idx].width = width
+                cells[i][idx].width = width
         print(f'\tSet columns\' width: {(time.perf_counter() - time_point):.4f}')
 
         # Видалення порожніх рядків після злиття:
         time_point = time.perf_counter()
         for column in range(len(headers)):
             for row in range(len(tab.rows)):
-                cur_paragraphs = tab.rows[row].cells[column].paragraphs
+                cur_paragraphs = cells[row][column].paragraphs
                 if len(cur_paragraphs) > 1:
                     for paragraph in cur_paragraphs[1:]:
                         if len(paragraph.text) == 0:
