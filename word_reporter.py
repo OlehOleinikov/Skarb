@@ -1,11 +1,9 @@
 """
 Формування документу MS Word
 """
-import datetime
 import io
 import re
 from typing import List
-import datetime
 
 import pandas as pd
 import numpy as np
@@ -23,24 +21,7 @@ from matplotlib.pyplot import Figure
 
 from empty_docx import _DocEditorEmpty
 from xml_converter import FileProfitXML
-
 from defines import dict_long, dict_short, service_col_names, headersdict, dict_company_types
-
-from functools import wraps
-import time
-
-
-def timeit(func):
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        # first item in the args, ie `args[0]` is `self`
-        print(f'Function {func.__name__} Took {total_time:.4f} seconds')
-        return result
-    return timeit_wrapper
 
 
 class DocEditor(_DocEditorEmpty):
@@ -174,7 +155,6 @@ class DocPartPerson:
                 cells.append([])
         return cells
 
-    @timeit
     def _count_plot_data_by_years(self):
         """Підготовка даних для гістограми - доходи по роках"""
         for pos, year in enumerate(sorted(self.df['year'].dropna().unique().tolist())):
@@ -183,7 +163,6 @@ class DocPartPerson:
             y_tax = round(self.df.loc[self.df['year'] == year]['tax'].sum(), 2)
             self.years_dict.update({pos: [None, None, str(year), y_profit, y_income, y_tax]})
 
-    @timeit
     def _count_plot_data_by_quarts(self):
         """Підготовка даних для гістограми - доходи по кварталам"""
         cur_year = int(self.min_year)
@@ -215,7 +194,6 @@ class DocPartPerson:
             print(f'Error with float value {amount} (type {type(amount)}) - cant convert to string')
             return 'n/a'
 
-    @timeit
     def _add_title(self):
         """Друк заголовку документа"""
         self.document.add_paragraph(f'_______ (РНОКПП {str(self.person)})', style='central_header')
@@ -242,7 +220,6 @@ class DocPartPerson:
         df.fillna('Не зазначено', inplace=True)
         return df
 
-    @timeit
     def _add_intro(self):
         """Друк вступний текст з загальною сумою доходу та середніми значеннями"""
         p_points_intro = self.document.add_paragraph(style='text_base')
@@ -263,7 +240,6 @@ class DocPartPerson:
         p_average_m.add_run(f'{self.f2s(self.profit_ave_month)} грн.').bold = True
         p_dummy = self.document.add_paragraph('', style='text_base')
 
-    @timeit
     def _add_plot(self, input_data: dict):
         """Графік загального прибутку по роках / кварталах"""
         columns = []  # квартал, рік...
@@ -318,7 +294,6 @@ class DocPartPerson:
         p_plot_timeline.add_run().add_picture(memory_file, width=Cm(17))
         self.document.add_paragraph(style='text_base')
 
-    @timeit
     def _add_pie(self, data_ser: pd.Series, percent_limit=5, hide_labels=False):
         # Групування малозначних записів у рядок "Інші":
         all_amount = data_ser.sum()
@@ -395,7 +370,6 @@ class DocPartPerson:
         p_plot_pie_table.add_run().add_picture(memory_file, width=Cm(12))
         self.document.add_paragraph(style='text_base')
 
-    @timeit
     def _add_profit_sources(self):
         """Деталізація по джерелам доходів (місцям роботи)"""
         self.document: Document()
@@ -409,7 +383,6 @@ class DocPartPerson:
         self._add_employer_table(emp_df)
         self.document.add_paragraph('', style='text_base')
 
-    @timeit
     def _add_profit_signs(self):
         """Деталізація по видам доходів"""
         self.document: Document()
@@ -448,7 +421,6 @@ class DocPartPerson:
                     self._add_employer_table(emp_df)
         self.document.add_paragraph('', style='text_base')
 
-    @timeit
     def _add_profit_years(self):
         """Деталізація по роках"""
         self.document: Document()
@@ -485,9 +457,7 @@ class DocPartPerson:
                     self._add_employer_table(emp_df)
         self.document.add_paragraph('', style='text_base')
 
-    @timeit
     def _add_common_table(self, df: pd.DataFrame):
-        print(f'Test common table (from pandas dataframe): {df.shape[0]} rows, {df.shape[1]} columns')
         """Додавання до документа таблиці з відомостями про всі доходи деталізовано"""
         assert len(df.columns) == 5, 'Очікується, що в загальній таблиці має бути 5 колонок'
         df = df.copy(deep=True)
@@ -498,7 +468,6 @@ class DocPartPerson:
         p_table_intro.add_run("Деталізована таблиця відомостей про отримані доходи: ")
 
         # Створення таблиці та заповнення кольором заголовків:
-        time_point = time.perf_counter()
         tab = self.document.add_table(rows=df.shape[0] + 1, cols=len(df.columns))
         tab.allow_autofit = False
         tab.style = 'Table Grid'
@@ -512,17 +481,12 @@ class DocPartPerson:
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
 
-        print(f'\tCreate table, fill headers: {(time.perf_counter() - time_point):.4f}')
-
         # Внесення даних у таблицю
-        time_point = time.perf_counter()
         for i in range(df.shape[0]):
             for j in range(df.shape[1]):
                 cells[i+1][j].text = df.values[i, j]
-        print(f'\tFill data: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування колонок
-        time_point = time.perf_counter()
         for i in range(df.shape[0]):
             row_in_tab = i + 1
             cells[row_in_tab][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
@@ -530,7 +494,6 @@ class DocPartPerson:
             cells[row_in_tab][2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
             cells[row_in_tab][3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
             cells[row_in_tab][4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-        print(f'\tAlign column content: {(time.perf_counter() - time_point):.4f}')
 
         # Формат заголовків таблиці
         for cell_pos in range(len(headers)):
@@ -538,15 +501,12 @@ class DocPartPerson:
             tab.rows[0].cells[cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
         # Встановлення ширини колонок
-        time_point = time.perf_counter()
         widths = (Cm(2), Cm(5.5), Cm(2), Cm(2), Cm(5.5))
         for i in range(df.shape[0]+1):
             for idx, width in enumerate(widths):
                 cells[i][idx].width = width
-        print(f'\tSet columns width: {(time.perf_counter() - time_point):.4f}')
         self.document.add_paragraph(style='text_base')
 
-    @timeit
     def _add_employer_table(self, df: pd.DataFrame):
         """Додавання до документу таблиці зі статистикою отриманих сум від працедавців"""
         assert len(df.columns) == 3, 'Очікується, що в таблиці працедавців має бути 3 колонки'
@@ -591,7 +551,6 @@ class DocPartPerson:
                 cells[i][idx].width = width
         self.document.add_paragraph(style='text_base')
 
-    @timeit
     def _prep_emp_df(self, employer_rating: pd.Series):
         """Перетворення статистики сум по агентами у датафрейм (для подальшої побудови таблиці документу)"""
         emp_code_list = list(employer_rating.index)
@@ -607,7 +566,6 @@ class DocPartPerson:
         emp_df['Сума грн.'] = emp_df['Сума грн.'].apply(lambda x: f2s_wrap(x))
         return emp_df
 
-    @timeit
     def _pivot_tab_data(self):
         """Підготовка списку з даними для зведеної таблиці (клітинки, що мають злитись вертикально - порожні)"""
         df = self.df.copy()
@@ -654,18 +612,13 @@ class DocPartPerson:
             full_name = re.sub(key, value.upper(), full_name, flags=re.IGNORECASE)
         return full_name
 
-    @timeit
     def _pivot_tab_add(self, data: List[List[str]]):
         """Додавання до документу форматованої зведеної таблиці РІК - ВИД - ЮРИДИЧНА ОСОБА - СУМА ЗА РІК """
-        print(f'Test pivot table: {len(data)} rows')
-        time_point = time.perf_counter()
         headers = ['Рік', "Вид доходу", "Найменування агента", "Сума (грн.)"]
         p_table_intro = self.document.add_paragraph(style='text_base')
         p_table_intro.add_run("Зведена таблиця доходів в розрізі періодів та видів: ")
-        print(f'\tParagraph add: {(time.perf_counter() - time_point):.4f}')
 
         # Створення таблиці та заповнення кольором заголовків:
-        time_point = time.perf_counter()
         tab = self.document.add_table(rows=len(data) + 1, cols=len(headers))
         tab.allow_autofit = False
         tab.style = 'Table Grid'
@@ -678,17 +631,12 @@ class DocPartPerson:
             shade_obj.set(qn('w:fill'), 'd9d9d9')
             table_cell_properties.append(shade_obj)
 
-        print(f'\tСтворення таблиці та заповнення кольором заголовків: {(time.perf_counter() - time_point):.4f}')
-
         # Внесення даних у таблицю
-        time_point = time.perf_counter()
         for i in range(len(data)):
             for j in range(len(headers)):
                 cells[i+1][j].text = data[i][j]
-        print(f'\tВнесення даних у таблицю: {(time.perf_counter() - time_point):.4f}')
 
         # Злиття клітинок:
-        time_point = time.perf_counter()
         for column in range(len(headers)):
             last_filled = 0
             for row in range(len(tab.rows)):
@@ -703,50 +651,38 @@ class DocPartPerson:
                 a = cells[last_filled][column]
                 b = cells[len(data)][column]
                 a.merge(b)
-        print(f'\tЗлиття клітинок: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування колонок
-        time_point = time.perf_counter()
         for row in range(len(tab.rows)):
             cells[row][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             cells[row][1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
             cells[row][2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
             cells[row][3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-        print(f'\tЦентрування колонок: {(time.perf_counter() - time_point):.4f}')
 
         # Центрування клітинок по вертикалі
-        time_point = time.perf_counter()
         for row in range(len(tab.rows)):
             for vertical_col in [0, 1, 3]:
                 cells[row][vertical_col].vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
                 cells[row][vertical_col].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-        print(f'\tЦентрування клітинок по вертикалі: {(time.perf_counter() - time_point):.4f}')
 
         # Формат років (значень першої колонки)
-        time_point = time.perf_counter()
         for row in range(len(tab.rows)):
             # cells[row][0].paragraphs[0].runs[0].font.bold = True
             cells[row][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        print(f'\tФормат років (значень першої колонки): {(time.perf_counter() - time_point):.4f}')
 
         # Формат заголовків таблиці
-        time_point = time.perf_counter()
         for cell_pos in range(len(headers)):
             cells[0][cell_pos].paragraphs[0].runs[0].font.bold = True
             cells[0][cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             cells[0][cell_pos].paragraphs[0].alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-        print(f'\tФормат заголовків таблиці: {(time.perf_counter() - time_point):.4f}')
 
         # Встановлення ширини колонок
-        time_point = time.perf_counter()
         widths = (Cm(1), Cm(4.7), Cm(8.8), Cm(2.5))
         for i in range(len(data) + 1):
             for idx, width in enumerate(widths):
                 cells[i][idx].width = width
-        print(f'\tSet columns\' width: {(time.perf_counter() - time_point):.4f}')
 
         # Видалення порожніх рядків після злиття:
-        time_point = time.perf_counter()
         for column in range(len(headers)):
             for row in range(len(tab.rows)):
                 cur_paragraphs = cells[row][column].paragraphs
@@ -756,7 +692,6 @@ class DocPartPerson:
                             p = paragraph._element
                             p.getparent().remove(p)
                             p._p = p._element = None
-        print(f'\tВидалення порожніх рядків після злиття: {(time.perf_counter() - time_point):.4f}')
         self.document.add_paragraph(style='text_base')
 
 
