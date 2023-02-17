@@ -484,7 +484,7 @@ class DocPartPerson:
         # Внесення даних у таблицю
         for i in range(df.shape[0]):
             for j in range(df.shape[1]):
-                cells[i+1][j].text = df.values[i, j]
+                cells[i+1][j].text = str(df.values[i, j])
 
         # Центрування колонок
         for i in range(df.shape[0]):
