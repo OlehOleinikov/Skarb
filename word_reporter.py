@@ -80,12 +80,20 @@ class DocPartPerson:
                  add_tab=True,
                  sub_list_text=None,
                  sub_list_table=None):
+        # Налаштування та початкові значення
         self.sub_list_text = sub_list_text
         self.sub_list_table = sub_list_table
-        self.editor: DocEditor = editor
-        self.document: Document = editor.document
-        self.person = person
+        self.editor: DocEditor = editor  # посилання на інстанс даних з яких формується документ
+        self.document: Document = editor.document  # посилання на інстанс документа
+        self.person = person  # код досліджуваної особи
+        self.sources_periods_dict = {}  # {код_працедавця: [квартали, ]}
         self.df: pd.DataFrame = editor.df_xml.loc[editor.df_xml['person'] == person].copy()
+        self.sources_list = self.df['employer_id'].dropna().unique().tolist()  # список працедавців
+
+        # Періоди роботи щодо кожного працедавця:
+        self.sources_periods_dict = self.gather_kvartals_from_source()
+
+        # Підрахунок періоду перевірки (розрахунок кварталів)
         self.min_quad = self.df['year_quad'].min()
         self.max_quad = self.df['year_quad'].max()
         self.min_year = self.df['year'].min()
@@ -100,7 +108,7 @@ class DocPartPerson:
         if self.min_year == self.max_year:
             self.dur_month = max_quad_val - min_quad_val + 1
         else:
-            self.dur_month = (5 - min_quad_val) + max_quad_val + ((max_year_val - min_year_val) * 4)
+            self.dur_month = (5 - min_quad_val) + max_quad_val + ((max_year_val - min_year_val - 1) * 4)
         self.dur_month = self.dur_month * 3  # квартали в місяці
 
         # Визначення середніх значень доходів (розраховується з прибутку):
@@ -383,6 +391,69 @@ class DocPartPerson:
         self._add_employer_table(emp_df)
         self.document.add_paragraph('', style='text_base')
 
+    def gather_kvartals_from_source(self):
+        """Формування списку кварталів щодо окремого працедавця"""
+        periods_temp = {} # [20231,]
+        for e in self.sources_list:
+            kvarts = list(set(self.df.loc[self.df['employer_id'] == e]['year_quad'].dropna().tolist()))
+            kvarts = sorted(kvarts)
+            periods_temp.update({e: kvarts})
+
+        periods_sep = {}  # [[2023, 1], ]
+        for e, vals in periods_temp.items():
+            vals = sorted(vals)
+            kvarts = []
+            for k_int in vals:
+                if len(str(k_int)) == 5:
+                    y = str(k_int)[:4]
+                    k = str(k_int)[-1]
+                    kvarts.append([y, k])
+            periods_sep.update({e: kvarts})
+
+        res = {}
+        for e, periods in periods_sep.items():
+            periods_res = []
+            limit = len(periods) - 1
+            cur_y_starts = int(periods[0][0])
+            cur_k_starts = int(periods[0][1])
+            last_k = int(periods[0][1])
+            last_y = int(periods[0][0])
+
+            for pos, kvart in enumerate(periods):
+                k = int(kvart[1])
+                y = int(kvart[0])
+
+                if (cur_y_starts == y and cur_k_starts == k) or \
+                        (last_y == y and (k - last_k == 1)) or \
+                        (y - last_y == 1 and last_k == 4 and k == 1):
+                    if pos == limit:
+                        if cur_y_starts == y and cur_k_starts == k:
+                            periods_res.append(f'{k}.{y}')
+                        else:
+                            periods_res.append(f'{cur_k_starts}.{cur_y_starts} - {k}.{y}')
+                        break
+                    last_y = y
+                    last_k = k
+                    continue
+
+                else:
+                    if cur_y_starts == last_y and cur_k_starts == last_k:
+                        periods_res.append(f'{last_k}.{last_y}')
+                        cur_y_starts = y
+                        cur_k_starts = k
+                    else:
+                        periods_res.append(f'{cur_k_starts}.{cur_y_starts} - {last_k}.{last_y}')
+                        cur_y_starts = y
+                        cur_k_starts = k
+
+                last_y = y
+                last_k = k
+
+            string_res = ", ".join(periods_res)
+            res.update({e: string_res})
+
+        return res
+
     def _add_profit_signs(self):
         """Деталізація по видам доходів"""
         self.document: Document()
@@ -509,7 +580,7 @@ class DocPartPerson:
 
     def _add_employer_table(self, df: pd.DataFrame):
         """Додавання до документу таблиці зі статистикою отриманих сум від працедавців"""
-        assert len(df.columns) == 3, 'Очікується, що в таблиці працедавців має бути 3 колонки'
+        assert len(df.columns) == 4, 'Очікується, що в таблиці працедавців має бути 3 колонки'
         df = df.copy(deep=True)
         df: pd.DataFrame
         df.reset_index(inplace=True, drop=True)
@@ -538,6 +609,7 @@ class DocPartPerson:
             cells[row][0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
             cells[row][1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             cells[row][2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            cells[row][3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
 
         # Формат заголовків таблиці
         for cell_pos in range(len(headers)):
@@ -545,7 +617,7 @@ class DocPartPerson:
             cells[0][cell_pos].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
 
         # Встановлення ширини колонок
-        widths = (Cm(2.5), Cm(2.5), Cm(12.0))
+        widths = (Cm(2.5), Cm(2.5), Cm(9.0), Cm(3.0))
         for i in range(df.shape[0]+1):
             for idx, width in enumerate(widths):
                 cells[i][idx].width = width
@@ -564,6 +636,10 @@ class DocPartPerson:
         def f2s_wrap(val):
             return DocPartPerson.f2s(val)
         emp_df['Сума грн.'] = emp_df['Сума грн.'].apply(lambda x: f2s_wrap(x))
+
+        emp_df['Період'] = emp_df['Код агента']
+        emp_df.replace({'Період': self.sources_periods_dict}, inplace=True)
+
         return emp_df
 
     def _pivot_tab_data(self):

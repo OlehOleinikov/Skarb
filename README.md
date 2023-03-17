@@ -1,7 +1,7 @@
 # Skarb
-[![Generic badge](https://img.shields.io/badge/Skarb_0.7beta_for_Windows-DOWNLOAD_(СКАЧАТИ)-blue?style=for-the-badge&logo=windows)](https://github.com/OlehOleinikov/Skarb/releases/download/v0.7-beta/skarb-0.7b.exe) 
+[![Generic badge](https://img.shields.io/badge/Skarb_0.8beta_for_Windows-DOWNLOAD_(СКАЧАТИ)-blue?style=for-the-badge&logo=windows)](https://github.com/OlehOleinikov/Skarb/releases/download/v0.8-beta/skarb-0.8b.exe) 
 
-[![Github All Releases](https://img.shields.io/github/downloads/OlehOleinikov/Skarb/total.svg?style=for-the-badge&color=lightgray)](https://github.com/OlehOleinikov/Skarb/releases/tag/v0.7-beta)
+[![Github All Releases](https://img.shields.io/github/downloads/OlehOleinikov/Skarb/total.svg?style=for-the-badge&color=lightgray)](https://github.com/OlehOleinikov/Skarb/releases/tag/v0.8-beta)
 
 ---
 
@@ -86,3 +86,8 @@ Used in GUI:
 - https://www.flaticon.com/free-icons/excel - Excel icons created by Freepik - Flaticon
 - https://www.flaticon.com/free-icons/microsoft-word - Microsoft word icons created by Bharat Icons - Flaticon
 - https://www.flaticon.com/free-icons/excel - Excel icons created by Bharat Icons - Flaticon
+
+## Технічний борг/відомі баги:
+
+- адаптація розмірів вікна та шрифтів під різні налаштування ОС (жорстке визначення GUI)
+- пакетне завантаження файлів / пакетний запис з можливістю групування в один файл та розділення по файлам щодо кожної особи
