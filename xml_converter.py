@@ -4,6 +4,7 @@
     - опрацювання структури
     - формування датафрейму
     - підготовка датафрейму до експорту
+    - окремий клас накопичення даних декількох файлів
 """
 
 import re
@@ -89,16 +90,22 @@ class FileProfitXML:
             self.columns.add(cell_inst.col)
         return 0
 
-    def check_columns_set(self) -> int:
+    def check_columns_set(self, df_new=None) -> bool:
         """
         Перевірка чи наявний достатній набір колонок у імпортованому файлі
 
         :return: True - Ok, False - недостатньо колонок для опрацювання
         """
-        if len(set(service_col_names.keys()).intersection(self.columns)) == 11:
-            return True
+        if df_new is None:
+            if len(set(service_col_names.keys()).intersection(self.columns)) == 11:
+                return True
+            else:
+                return False
         else:
-            return False
+            if len(set(service_col_names.keys()).intersection(df_new.columns)) == 11:
+                return True
+            else:
+                return False
 
     def fill_df(self) -> str:
         """
@@ -127,7 +134,14 @@ class FileProfitXML:
             self.df.at[c.row - 1, c.col] = c.value  # заповнення "запис XML - клітинка таблиці"
 
         # Видалення рядку "Декларація фізичної особи" - не приймає участі у аналізі
+        rows_before = self.df.shape[0]
         self.df.drop(self.df[self.df['g10'].isin([888, '888'])].index, inplace=True)
+        if rows_before != self.df.shape[0]:
+            pass
+            # warnings += "У таблиці наявні записи щодо декларування фізичної особи (код 888), записи про подані " \
+            #             "декларації не враховуються при подальшій роботі Skarb (не вносяться в аналітичні звіти " \
+            #             "та не додаються у експорт Excel). Зазначене не стосується доходів підприємницької " \
+            #             "діяльності.\n"
 
         # Вирішення помилкового коду вивантаження з БД:
         self.df.fillna(np.nan, inplace=True)  # Перетворення None до np.nan
@@ -157,26 +171,38 @@ class FileProfitXML:
         self.df['g11'].fillna(4, inplace=True)  # заповнення кварталу у разі порожнього значення
 
         na_income = self.df['g8'].isna().sum()  # місінги у значенні доходів
-        na_tax = self.df['g9'].isna().sum() # місінги у значенні податків
+        na_tax = self.df['g9'].isna().sum()  # місінги у значенні податків
+        na_name_employer = self.df['g7s'].isna().sum()  # місінги у найменуванні роботодавця
+        na_income_type = self.df['g10'].isna().sum()  # місінги у видах доходу
 
         if na_income > 0:
             ind_na_income = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g8"]), :].index)])
-            warnings += f'Відсутні суми доходу у {na_income} рядках замінені на 0.00 (№: {ind_na_income})\n'
+            warnings += f'Відсутні суми доходу у {na_income} рядках, замінені на 0.00 (№: {ind_na_income})\n'
             self.df['g8'].fillna(0.0, inplace=True)
 
         if na_tax > 0:
             ind_na_tax = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g9"]), :].index)])
-            warnings += f'Відсутні суми податку у {na_tax} рядках замінені на 0.00 (№: {ind_na_tax})\n'
+            warnings += f'Відсутні суми податку у {na_tax} рядках, замінені на 0.00 (№: {ind_na_tax})\n'
             self.df['g9'].fillna(0.0, inplace=True)
 
-        # Вирішення місінгів в обовязкових колонках:
-        req_columns = {'g7s': 'Назва агента', "g10": "Вид доходу", "g12": "Рік"}
-        for column in req_columns.keys():
-            missing_count = self.df[column].isna().sum()
-            if missing_count:
-                warnings += f'Видалено {missing_count} записів у яких відсутні значення поля ' \
-                            f'"{service_col_names.get(column, column)}"\n'
-                self.df.dropna(subset=[column], inplace=True)
+        if na_name_employer > 0:
+            ind_na_empname = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g7s"]), :].index)])
+            warnings += f'Відсутні назви джерела у {na_name_employer} рядках, замінені на "Не відомо" (№: {ind_na_empname})\n'
+            self.df['g7s'].fillna("Не зазначено", inplace=True)
+
+        if na_income_type > 0:
+            ind_na_type = ', '.join([str(x+1) for x in list(self.df.loc[pd.isna(self.df["g7s"]), :].index)])
+            warnings += f'Відсутні види доходу у {na_income_type} рядках, замінені на "код 14 Інші доходи" (№: {ind_na_type})\n'
+            self.df['g7s'].fillna(14, inplace=True)
+
+        # # Вирішення місінгів в обовязкових колонках:
+        # req_columns = {'g7s': 'Назва агента', "g10": "Вид доходу", "g12": "Рік"}
+        # for column in req_columns.keys():
+        #     missing_count = self.df[column].isna().sum()
+        #     if missing_count:
+        #         warnings += f'Видалено {missing_count} записів у яких відсутні значення поля ' \
+        #                     f'"{service_col_names.get(column, column)}"\n'
+        #         self.df.dropna(subset=[column], inplace=True)
 
         # Приведення числових типів у відповідність:
         for col in self.col_int:
@@ -299,8 +325,54 @@ class FileProfitXML:
         Заповнення значення роботодавця в разі коли запис стосується ФОП. Код 512 - річний звіт ФОП.
         Передбачається, що метод викликається після видалення записів про 6 та 9-місячні звіти.
         """
-        if row['g10'] in [512, '512']:
+        if row['g10'] in [512, '512', 503, "503", 506, "506", 509, "509"]:
             row['g6s'] = row['g3s']
             row['g7s'] = 'ДОХОДИ ВЛАСНОЇ ПІДПРИЄМНИЦЬКОЇ ДІЯЛЬНОСТІ'
         return row
+
+
+class MultiFileDrfoData(FileProfitXML):
+    def __init__(self):
+        super().__init__(file='dummy path')  # dummy path
+
+    def add_df(self, df_new: pd.DataFrame):
+        self.df = pd.concat([self.df, df_new], ignore_index=True, sort=False)
+        self.df.reset_index(inplace=True, drop=True)
+
+    def read_xml(self) -> int:
+        """
+        Читання файлу XML, перевірка відповідності схеми
+
+        :return: error code: 0 - OK, 1 - ERROR
+        """
+        raise AttributeError('Multi data instance not allowed the method. Use parent class')
+
+    def fill_df(self) -> str:
+        """
+        Створення порожнього датафрейму відповідно отриманої розмірності (рядки/колонки) та заповнення
+        його записами файлу XML
+
+        :return: текстовий опис виявлених помилок
+        """
+        raise AttributeError('Multi data instance not allowed the method. Use parent class')
+
+    @staticmethod
+    def _tax_declaration_fix(df: pd.DataFrame):
+        """
+        Нормалізація доходів зазначених в деклараціях платника єдиного податку:
+        виключення піврічних звітів, які включаються 9-річними, формування окремого виду доходу щодо
+        доходу отриманого від підприємницької діяльності (коди 506, 509, 512).
+        Дублювання звітів визначається для кожного року та кожної окремої особи.
+        Передбачається використання методу під час опрацювання місінгів (тобто до приведення
+        типів до цілих чисел).
+        """
+        raise AttributeError('Multi data instance not allowed the method. Use parent class')
+
+    @staticmethod
+    def fill_na_tax_codes(row):
+        """
+        Заповнення значення роботодавця в разі коли запис стосується ФОП. Код 512 - річний звіт ФОП.
+        Передбачається, що метод викликається після видалення записів про 6 та 9-місячні звіти.
+        """
+        raise AttributeError('Multi data instance not allowed the method. Use parent class')
 

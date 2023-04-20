@@ -19,12 +19,13 @@ https://www.flaticon.com/free-icons/excel - Excel icons created by Bharat Icons 
 """
 
 import sys
+import os
 from pathlib import Path
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressBar
 
 from gui.main_gui import Ui_MainWindow
-from xml_converter import FileProfitXML
+from xml_converter import FileProfitXML, MultiFileDrfoData
 from word_reporter import DocEditor
 
 
@@ -33,73 +34,100 @@ class AppWin(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
-        self.data = None
+        self.data = MultiFileDrfoData()
 
         self.b_import.clicked.connect(self.import_file)
         self.b_word.clicked.connect(self.save_word)
         self.b_excel.clicked.connect(self.save_excel)
         self.l_cur_file.setText(f'Статус: Готовий до роботи')
-        self.label_4.setOpenExternalLinks(True)
+        self.label_4.setOpenExternalLinks(True)  # дозвіл на відкриття браузера (посилання на Github)
 
     def import_file(self):
-        chosen_file = QFileDialog.getOpenFileName(self, 'Вибір файлу відомостей про доходи', str(Path.cwd().absolute()),
-                                                  'Файли XML (*.xml *.XML)')[0]
-        if chosen_file:
-            self.statusbar.showMessage('Завантаження XML...', 5000)
-            QApplication.processEvents()
-            self.data = FileProfitXML(chosen_file)
-            success = (not bool(self.data.read_xml()))  # спроба прочитати XML файл
+        """Вибір файлів для опрацювання (відкриття вікна вибору, валідація, препроцесінг)"""
+
+        result_info = ''  # звіт про результати (накопичується під час виконання)
+        user_files = QFileDialog.getOpenFileNames(self, 'Додати файл (файли) для опрацювання (*.xml)',
+                                                  str(Path.cwd().absolute()),
+                                                  'Файли ДРФО (*.xml)')
+        # Якщо користувач не обрав файли:
+        if not len(user_files[0]):
+            self.statusbar.showMessage('Не обрані файли XML...', 5000)
+            return 0
+
+        # Створення тимчасового прогресбару
+        self.statusbar.showMessage('Завантаження XML...', 5000)
+        self.progressBar = QProgressBar()
+        self.progressBar.setMaximumHeight(18)
+        self.progressBar.setMinimumHeight(18)
+        self.progressBar.setStyleSheet("""QProgressBar {
+                                                border: 2px solid rgb(211, 211, 211);
+                                                border-radius: 7px;
+                                                background-color: rgb(211, 211, 211);
+                                                text-align: center;
+                                            }
+                                            QProgressBar::chunk {
+                                                background-color: rgb(246, 191, 39);
+                                                width: 7px; 
+                                                margin: 0.5px;
+                                                border-radius :2px;
+                                            }""")
+        self.statusBar().addPermanentWidget(self.progressBar)
+        self.progressBar.setMaximum(len(user_files[0]) - 1)
+        self.progressBar.setMinimum(0)
+        self.progressBar.setValue(0)
+
+        # Ітерування файлів:
+        for pos, file in enumerate(user_files[0]):
+            file_path = file
+            file_name = os.path.basename(file)
+            result_info += f"----------------------------------\n" \
+                           f"File: {file_name}\n"
+            cur_df = FileProfitXML(file_path)  # створення інстансу обробки одного файлу
+            success = (not bool(cur_df.read_xml()))  # спроба прочитати XML файл (доступ, збір відомих тегів)
             if not success:
-                self._disable_gui('Помилка читання XML файлу')
-                self.l_cur_file.setText(f'Файл: {Path(chosen_file).name}\nСтатус: Не вдалось прочитати XML')
-                self.l_cur_file.setStyleSheet("QLabel{color: rgb(150, 0, 0);}")
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Warning)
-                msg.setText("Помилка читання XML файлу.")
-                msg.setInformativeText("Можливо файл відкритий іншою програмою.")
-                msg.setWindowTitle("Помилка XML")
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.exec_()
-                return
+                result_info += f'Помилка читання файлу: можливо файл відкритий іншою програмою або не є файлом ДРФО\n\n'
+                continue
+            warnings = cur_df.fill_df()  # валідація та форматування даних файлу
+            result_info += warnings
 
-            warnings = self.data.fill_df()
-            if warnings != '':
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
-                msg.setText("Під час імпорту виявлені невалідні записи.")
-                msg.setInformativeText("Перевірте критичність помилок за кнопкою 'Show details'")
-                msg.setWindowTitle("Попередження")
-                msg.setDetailedText(warnings)
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.exec_()
-
-            if self.data.df.shape[0] == 0:
-                self._disable_gui('Формат XML неочікуваний (0 записів)')
-                self.l_cur_file.setText(f'Файл: {Path(chosen_file).name}\nСтатус: Не вдалось прочитати XML')
-                self.l_cur_file.setStyleSheet("QLabel{color: rgb(150, 0, 0);}")
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
-                msg.setText("Не виявлено валідних записів")
-                msg.setInformativeText("Особи не мали офіційних джерел доходів, відмовлено у видачі з БД або файл "
-                                       "не відноситься до формату реєстру ДРФО/змінювався сторонніми програмами. "
-                                       "Деталі імпорту за кнопкою 'Show details'")
-                msg.setWindowTitle("Неочікуваний формат")
-                msg.setDetailedText(warnings)
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.exec_()
-                return
+            if cur_df.df.shape[0] > 0:  # якщо є хоча б один розпізнаний запис
+                self.data.add_df(cur_df.df)
+                result_info += f'OK. Додано записів: {cur_df.df.shape[0]}\n'
             else:
-                # self.gb_import.setDisabled(True)
-                self.gb_word.setEnabled(True)
-                self.gb_excel.setEnabled(True)
-                self.statusbar.showMessage(f'XML опрацьовано', 5000)
-                # self.l_cur_file.setText(f'Статус: записів {self.data.df.shape[0]} ({Path(chosen_file).name})')
-                persons_count = self.data.df['g3s'].nunique()
-                self.l_cur_file.setText(f'Файл: {Path(chosen_file).name}\n'
-                                        f'Статус: записів {self.data.df.shape[0]} (платників: {persons_count})')
-                self.l_cur_file.setStyleSheet("QLabel{color: rgb(0, 145, 0);}")
+                result_info += 'ЗАПИСИ ВІДСУТНІ\n'
+
+            result_info += f'\n'
+            self.progressBar.setValue(pos)
+            QApplication.processEvents()
+
+        # Оновлення статусу в вікні GUI
+        if self.data.df.shape[0] == 0:
+            self.l_cur_file.setText(f'Файлів: {len(user_files[0])}\nСтатус: відсутні валідні дані')
+            self.l_cur_file.setStyleSheet("QLabel{color: rgb(150, 0, 0);}")
+            self._disable_gui('Відсутні дані в обраних XML файлах')
+        else:
+            persons_total = len([x for x in self.data.df['g3s'].dropna().unique().tolist() if len(x) > 6])
+            self.l_cur_file.setText(f'Файлів: {len(user_files[0])}\n'
+                                    f'Статус: записів {self.data.df.shape[0]} (платників: {persons_total})')
+            self.l_cur_file.setStyleSheet("QLabel{color: rgb(0, 145, 0);}")
+            self.gb_word.setEnabled(True)
+            self.gb_excel.setEnabled(True)
+
+        self.statusbar.removeWidget(self.progressBar)
+        self.statusbar.showMessage('Опрацювання XML завершено', 5000)
+
+        # Звіт користувачу після завершення опрацювання всіх обраних файлів:
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Information)
+        msg.setText("Опрацювання обраних XML файлів завершено.")
+        msg.setInformativeText("Перевірте (!) успішність опрацювання за кнопкою 'Show details'")
+        msg.setWindowTitle("Результати опрацювання XML")
+        msg.setDetailedText(result_info)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
 
     def _disable_gui(self, message='Помилка завантаження'):
+        """Вимкнення кнопок формування звітів та вибірок (у випадку відсутності даних)"""
         self.gb_word.setDisabled(True)
         self.gb_excel.setDisabled(True)
         self.l_cur_file.setText(f'Статус: Не вдалось завантажити XML')
@@ -110,7 +138,7 @@ class AppWin(QMainWindow, Ui_MainWindow):
         if new_file[0] != '':
             self.statusbar.showMessage('Збереження Excel...', 5000)
             QApplication.processEvents()
-            self.data: FileProfitXML
+            self.data: MultiFileDrfoData
             self.data.save_excel(new_file[0],
                                  separate=self.rb_excel_sep.isChecked(),
                                  format_float=self.cb_float_format.isChecked(),

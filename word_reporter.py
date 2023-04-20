@@ -3,7 +3,7 @@
 """
 import io
 import re
-from typing import List
+from typing import List, Union
 
 import pandas as pd
 import numpy as np
@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import Figure
 
 from empty_docx import _DocEditorEmpty
-from xml_converter import FileProfitXML
+from xml_converter import FileProfitXML, MultiFileDrfoData
 from defines import dict_long, dict_short, service_col_names, headersdict, dict_company_types
 
 
@@ -30,7 +30,7 @@ class DocEditor(_DocEditorEmpty):
     """
 
     def __init__(self,
-                 xml_inst: FileProfitXML,
+                 xml_inst: Union[FileProfitXML, MultiFileDrfoData, pd.DataFrame],
                  add_years=False,
                  add_signs=False,
                  add_tab=False,
@@ -43,8 +43,8 @@ class DocEditor(_DocEditorEmpty):
         self.sub_list_text = sub_list_text
         self.sub_list_table = sub_list_table
 
-        self.xml_inst = xml_inst  # посилання на результати опрацювання XML
-        self.df_xml = xml_inst.df.copy()
+        assert issubclass(xml_inst.__class__, FileProfitXML) or isinstance(xml_inst, pd.DataFrame)
+        self.df_xml = xml_inst.df.copy() if issubclass(xml_inst.__class__, FileProfitXML) else xml_inst.copy()
         self.df_xml.rename(columns=service_col_names, inplace=True)  # назви колонок до більш зручних у коді
 
         # Формування додаткової колонки для сортування з урахуванням кварталу:
